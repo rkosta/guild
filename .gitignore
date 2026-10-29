@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*~
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Guild plan folders (created in target projects, ignored here if run in-repo)
+.guild/
