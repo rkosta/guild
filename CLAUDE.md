@@ -15,8 +15,12 @@ commands/            slash commands → installed to ~/.claude/commands/
   quest-herdr.md  orchestrator, Herdr mode (one pane per agent)
 scripts/
   install.sh         copies agents + commands into ~/.claude/ (macOS/Linux)
+tools/check/         checkers run by `pnpm run check` (frontmatter, drift, contract)
+test/                node:test tests for the checkers
 README.md            user-facing docs: install, usage, tiers, flow
 CLAUDE.md            this file
+CHANGELOG.md         version history (newest first)
+VERSION              current version, single source of truth
 ```
 
 ## How the workflow works
@@ -53,30 +57,20 @@ CLAUDE.md            this file
 - **Agent files are shared by both modes.** Any change must work as a subagent *and* as a standalone `claude --agent` session. Mode-specific instructions (handoff files, STATUS lines) belong in the orchestrator's briefs, not in the agent files.
 - **The tier table exists in three places:** `quest.md`, `quest-herdr.md` and `README.md`. Change all three together.
 - **Phase logic is duplicated** across the two commands (approval, fix loop, run log, summary). When changing one, check whether the other needs the same change.
-- **YAML frontmatter:** quote any value that starts with `[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@` or contains a colon followed by a space. (`argument-hint` broke once because of an unquoted `[`.) Validate after editing:
-  ```bash
-  python3 -c "import yaml,glob; [print('OK', f, yaml.safe_load(open(f).read().split('---')[1]) and '') for f in glob.glob('*/*.md')]"
-  ```
+- **YAML frontmatter:** quote any value that starts with `[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@` or contains a colon followed by a space. (`argument-hint` broke once because of an unquoted `[`.) `pnpm run check` validates them.
 - Keep prompts short and imperative. Each agent has a fixed **Reply format**; the orchestrator relies on it (e.g. `Verdict: PASS|CHANGES_REQUESTED`), so don't rename those fields casually.
-- Update the README when behavior changes. Bump the version in its title.
+- Update the README when behavior changes. To release: bump `VERSION` and `package.json`, add a `CHANGELOG.md` entry on top, and update the README title. `pnpm run check` fails if they disagree.
+- **Run `pnpm run check` and `pnpm test` before committing.** A lefthook pre-commit hook does it for you. The checks replace the manual YAML one-liner: they validate frontmatter, tier-table and version drift, and the reply-format/STATUS contract between agents and orchestrators. If you change one of those contracts on purpose, update the checker in `tools/check/` and its test in the same commit.
+
+## Setup
+`mise install` (Node 24, pnpm 12, shellcheck), then `pnpm install` (also installs the git hook).
 
 ## Installing / testing changes
 ```bash
+pnpm run check && pnpm test
 ./scripts/install.sh
 ```
 Restart Claude Code, check `/agents`. Test on a throwaway repo with a small `--tier light` task first. For Herdr mode: run inside a Herdr pane, with `herdr integration install claude` done and `"Bash(herdr *)"` allowed in `~/.claude/settings.json`.
-
-## Version history
-- **v1** — four subagents + `/quest`, project-level, plans in repo.
-- **v1.1** — moved to user level; no CLAUDE.md needed in target projects; build/test auto-detection.
-- **v1.2** — plans back in the target repo (`.guild/`, git-ignored via `.git/info/exclude`).
-- **v1.3** — tiers (`--tier`), tier + models recorded in the plan, run log, summary. v1.3.1: quoted `argument-hint` YAML fix.
-- **v2.0** — `/quest-herdr`: one Herdr pane per agent, brief/handoff files, reviewer gets `Write` for handoffs.
-- **v2.1** — aligned `/quest-herdr` with Herdr's agent skill: CLI safety rules, pane-width check before the 2×2 grid, `agent_not_ready` (folder-trust dialog) handling, check for `blocked` before prompting, `agent_prompt_stalled` handling, workers told not to control other panes.
-- **v2.2** — agents get `codegraph_explore` (all), Figma read tools + `create_session` (analyst, developer; reviewer gets create_session + screenshot/context only), `Skill` (analyst, developer). No Herdr/Artifact tools on purpose.
-
-- **v3.0** — renamed to **Guild**; `/dev-task` → `/quest`, `/dev-task-herdr` → `/quest-herdr`. Plan folder in target projects renamed `.dev-workflow/` → `.guild/` (old plans stay where they are; the old exclude line in `.git/info/exclude` is harmless). Old installed `dev-task*.md` files must be deleted from `~/.claude/commands/` by hand.
-- **v3.1** — Herdr mode names each Claude session `<slug>-<role>` (`-n`), so finished sessions can be found via `claude --resume`. Herdr agent handles stay `<role>`.
 
 ## Backlog (not started)
 - More workflows under the Guild name: `/hunt` (bug fix: reproduce → fix → regression test), `/expedition` (research, no code), `/siege` (big refactor/migration), `/audit` (read-only review)

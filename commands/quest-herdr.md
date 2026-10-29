@@ -22,7 +22,7 @@ $ARGUMENTS
 If the input starts with `--tier <name>`, use that tier and strip the flag from the task text. Otherwise use **standard**. If the tier name isn't in the table, stop and ask.
 
 | Tier | analyst | developer | tester | reviewer |
-|---|---|---|---|---|
+|---|---|---|---|
 | light | sonnet | sonnet | sonnet | sonnet |
 | standard | opus | sonnet | sonnet | opus |
 | complex | opus | opus | sonnet | opus |

@@ -1,4 +1,4 @@
-# Guild — v3.1 (Herdr panes)
+# Guild — v3.1.0 (Herdr panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -85,7 +85,7 @@ How it works:
 The tier sets which model each agent runs on. Default is **standard**.
 
 | Tier | analyst | developer | tester | reviewer |
-|---|---|---|---|---|
+|---|---|---|---|
 | light | sonnet | sonnet | sonnet | sonnet |
 | standard | opus | sonnet | sonnet | opus |
 | complex | opus | opus | sonnet | opus |

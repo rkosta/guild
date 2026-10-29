@@ -1,0 +1,26 @@
+{
+  "name": "guild",
+  "version": "3.1.0",
+  "private": true,
+  "description": "Source of the Guild multi-agent workflow for Claude Code (Markdown prompts + install script).",
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "check": "pnpm run check:prompts && pnpm run lint",
+    "check:prompts": "node tools/check/index.mjs",
+    "lint": "pnpm run lint:md && pnpm run lint:sh",
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
+    "lint:sh": "shellcheck scripts/*.sh",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "lefthook": "^1.11.0",
+    "markdownlint-cli2": "^0.17.0",
+    "yaml": "^2.7.0"
+  }
+}

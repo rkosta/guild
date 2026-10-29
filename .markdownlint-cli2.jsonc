@@ -1,0 +1,18 @@
+{
+  // Prompt files are prose for models, not published docs: keep only the
+  // rules that catch real mistakes (broken tables, bad fences, headings).
+  "config": {
+    "default": true,
+    "MD013": false, // line length
+    "MD022": false, // blank lines around headings (prompts are compact)
+    "MD031": false, // blank lines around fences
+    "MD032": false, // blank lines around lists
+    "MD040": false, // fence language (many are plain-text samples)
+    "MD024": false, // duplicate headings (Reply format, etc.)
+    "MD033": false, // inline HTML / <placeholders>
+    "MD036": false, // bold used as heading
+    "MD041": false, // first line heading (frontmatter files)
+    "MD060": false  // table column style
+  },
+  "ignores": ["node_modules"]
+}

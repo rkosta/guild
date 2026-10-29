@@ -19,3 +19,7 @@
 
 # Guild plan folders (created in target projects, ignored here if run in-repo)
 .guild/
+node_modules/
+
+# Tracked on purpose (pins the toolchain); overrides a global ignore
+!mise.toml
