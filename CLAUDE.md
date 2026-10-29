@@ -53,7 +53,7 @@ CLAUDE.md            this file
 - **Agent files are shared by both modes.** Any change must work as a subagent *and* as a standalone `claude --agent` session. Mode-specific instructions (handoff files, STATUS lines) belong in the orchestrator's briefs, not in the agent files.
 - **The tier table exists in three places:** `quest.md`, `quest-herdr.md` and `README.md`. Change all three together.
 - **Phase logic is duplicated** across the two commands (approval, fix loop, run log, summary). When changing one, check whether the other needs the same change.
-- **YAML frontmatter:** quote any value that starts with `[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@` or contains `: `. (`argument-hint` broke once because of an unquoted `[`.) Validate after editing:
+- **YAML frontmatter:** quote any value that starts with `[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@` or contains a colon followed by a space. (`argument-hint` broke once because of an unquoted `[`.) Validate after editing:
   ```bash
   python3 -c "import yaml,glob; [print('OK', f, yaml.safe_load(open(f).read().split('---')[1]) and '') for f in glob.glob('*/*.md')]"
   ```
@@ -76,6 +76,7 @@ Restart Claude Code, check `/agents`. Test on a throwaway repo with a small `--t
 - **v2.2** — agents get `codegraph_explore` (all), Figma read tools + `create_session` (analyst, developer; reviewer gets create_session + screenshot/context only), `Skill` (analyst, developer). No Herdr/Artifact tools on purpose.
 
 - **v3.0** — renamed to **Guild**; `/dev-task` → `/quest`, `/dev-task-herdr` → `/quest-herdr`. Plan folder in target projects renamed `.dev-workflow/` → `.guild/` (old plans stay where they are; the old exclude line in `.git/info/exclude` is harmless). Old installed `dev-task*.md` files must be deleted from `~/.claude/commands/` by hand.
+- **v3.1** — Herdr mode names each Claude session `<slug>-<role>` (`-n`), so finished sessions can be found via `claude --resume`. Herdr agent handles stay `<role>`.
 
 ## Backlog (not started)
 - More workflows under the Guild name: `/hunt` (bug fix: reproduce → fix → regression test), `/expedition` (research, no code), `/siege` (big refactor/migration), `/audit` (read-only review)

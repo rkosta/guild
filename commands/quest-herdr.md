@@ -56,9 +56,10 @@ Result: you on the left, a 2×2 grid of agents on the right.
 Start each agent the first time it's needed (not all up front):
 
 ```
-herdr agent start <role> --kind claude --pane <pane_id> --timeout 60000 -- --agent <role> --model <model> --permission-mode acceptEdits -n <role>
+herdr agent start <role> --kind claude --pane <pane_id> --timeout 60000 -- --agent <role> --model <model> --permission-mode acceptEdits -n <slug>-<role>
 ```
 
+- `-n <slug>-<role>` names the Claude Code session (e.g. `add-login-developer`) so the user can find it later with `claude --resume <name>` or `/resume`. The Herdr handle stays `<role>`.
 - `--agent <role>` loads `~/.claude/agents/<role>.md`, so the role's instructions and tool limits apply.
 - If the name is already taken by a live agent, stop and tell the user another run seems to be active.
 - If it returns `agent_not_ready`, Claude Code is waiting on a startup dialog in that pane (typically "Do you trust the files in this folder?" the first time in a repo). Tell the user which pane needs them, then `herdr agent wait <role> --timeout 300000` until it's idle. Never answer the dialog yourself.
