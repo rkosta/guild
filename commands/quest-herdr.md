@@ -58,7 +58,7 @@ Result: a 2×2 grid of agents, with you on the left in the current-tab case. Pan
 Start each agent the first time it's needed (not all up front):
 
 ```
-herdr agent start <slug>-<role> --kind claude --pane <pane_id> --timeout 60000 -- --agent <role> --model <model> --permission-mode acceptEdits -n <slug>-<role>
+herdr agent start <slug>-<role> --kind claude --pane <pane_id> --timeout 60000 -- --agent <role> --model <model> --permission-mode auto -n <slug>-<role>
 ```
 
 - `-n <slug>-<role>` names the Claude Code session (e.g. `add-login-developer`) so the user can find it later with `claude --resume <name>` or `/resume`. The Herdr handle is also `<slug>-<role>`, so leftover agents from another run never collide with this one. Below, `<handle>` means `<slug>-<role>`.

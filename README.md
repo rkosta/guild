@@ -1,4 +1,4 @@
-# Guild — v3.2.0 (Herdr panes)
+# Guild — v3.3.0 (Herdr panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -76,7 +76,7 @@ How it works:
   ├── briefs/     T1-dev-developer.md, T1-review-reviewer.md, …
   └── handoffs/   same names — what each agent concluded
   ```
-- Agents start with `acceptEdits`, so file edits don't ask. Shell commands (build, tests) still ask for permission **in that agent's pane**. The orchestrator notices the agent is blocked and tells you which pane needs you. It never approves anything on your behalf.
+- Agents start in `auto` permission mode, so they rarely ask. If one still blocks on a permission prompt, it waits **in that agent's pane**; the orchestrator notices the agent is blocked and tells you which pane needs you. It never approves anything on your behalf.
 - Each session is named `<slug>-<role>` (e.g. `add-login-developer`), so you can reopen it later with `claude --resume <name>` or `/resume`.
 - Agents stay alive for the whole run, so the developer remembers context across fix rounds. When the run ends, the panes stay open so you can scroll back; at the end the orchestrator asks whether to close them (it never closes anything on its own).
 
