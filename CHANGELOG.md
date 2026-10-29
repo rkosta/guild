@@ -2,6 +2,10 @@
 
 Newest first. The top entry must match `VERSION` and the README title (`pnpm run check` verifies this).
 
+## v3.2.0
+
+`/quest-herdr`: on a narrow pane (under ~210 columns) the agents go into a new tab automatically instead of asking. Herdr agent handles are now `<slug>-<role>`, so leftover agents from earlier runs don't collide. The start of a run lists panes left over from earlier runs and asks whether to close them. Wrap-up asks whether to close the agent panes instead of just listing them. Nothing is closed without an explicit yes.
+
 ## v3.1.0
 
 Herdr mode names each Claude session `<slug>-<role>` (`-n`), so finished sessions can be found via `claude --resume`. Herdr agent handles stay `<role>`.

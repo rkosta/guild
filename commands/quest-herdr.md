@@ -40,29 +40,31 @@ Create the folders. If the project is a git repo and `.git/info/exclude` doesn't
 Step names: `plan`, `T1-dev`, `T1-test`, `T1-review`, `T1-fix1-dev`, `T1-fix1-test`, `T1-fix1-review`, and so on.
 
 ## 3 — Layout
-First check how much room there is: `herdr pane layout --pane "$HERDR_PANE_ID"`. The 2×2 grid below gives each agent about a quarter of your current pane's width. If that would leave columns too narrow to read (roughly under 70 characters each), tell the user and ask whether to continue anyway or put the agents in a new tab (`herdr tab create --label "quest <slug>" --no-focus`, then build the same grid from that tab's root pane). Never create a new tab without asking.
+First look for leftovers: `herdr pane list`. Panes labelled `<role> · <model>` (analyst, developer, tester, reviewer) that this run did not create are from earlier runs. Skip any whose agent is still working (`herdr agent get`). If there are others, list them and ask the user once whether to close them. Close them only on an explicit yes (`herdr pane close <id>`, IDs from the JSON). On a no or no answer, leave them and continue.
 
-Build the layout once, in the current tab, with every new pane's `--cwd` set to the project root and `--no-focus`:
-1. `herdr pane split --current --direction right` → pane A (analyst)
+First check how much room there is: `herdr pane layout --pane "$HERDR_PANE_ID"`. In the current tab you and the agents share three columns, so each gets about a third of your pane's width. If that leaves columns under ~70 characters (your pane is under ~210 wide), don't ask: create a new tab (`herdr tab create --label "quest <slug>" --no-focus`), say so in one line (e.g. "Pane is 122 wide; putting the agents in a new tab"), and build the same grid from that tab's root pane. In the new tab the agents get the full width, and there is no orchestrator column.
+
+Build the layout once, with every new pane's `--cwd` set to the project root and `--no-focus`. Step 1 splits your pane in the current tab, or the new tab's root pane:
+1. `herdr pane split --current --direction right` → pane A (analyst). In the new-tab case, A is the tab's root pane, so skip this split.
 2. `herdr pane split <A> --direction down` → pane B (tester)
 3. `herdr pane split <A> --direction right` → pane C (developer)
 4. `herdr pane split <B> --direction right` → pane D (reviewer)
 
 Each command prints JSON; the new pane ID is at `.result.pane.pane_id`. Label each pane with `herdr pane rename <id> "<role> · <model>"`.
 
-Result: you on the left, a 2×2 grid of agents on the right.
+Result: a 2×2 grid of agents, with you on the left in the current-tab case. Panes left over from earlier runs that the user chose to keep are not yours; don't touch them.
 
 ## 4 — Starting an agent
 Start each agent the first time it's needed (not all up front):
 
 ```
-herdr agent start <role> --kind claude --pane <pane_id> --timeout 60000 -- --agent <role> --model <model> --permission-mode acceptEdits -n <slug>-<role>
+herdr agent start <slug>-<role> --kind claude --pane <pane_id> --timeout 60000 -- --agent <role> --model <model> --permission-mode acceptEdits -n <slug>-<role>
 ```
 
-- `-n <slug>-<role>` names the Claude Code session (e.g. `add-login-developer`) so the user can find it later with `claude --resume <name>` or `/resume`. The Herdr handle stays `<role>`.
+- `-n <slug>-<role>` names the Claude Code session (e.g. `add-login-developer`) so the user can find it later with `claude --resume <name>` or `/resume`. The Herdr handle is also `<slug>-<role>`, so leftover agents from another run never collide with this one. Below, `<handle>` means `<slug>-<role>`.
 - `--agent <role>` loads `~/.claude/agents/<role>.md`, so the role's instructions and tool limits apply.
-- If the name is already taken by a live agent, stop and tell the user another run seems to be active.
-- If it returns `agent_not_ready`, Claude Code is waiting on a startup dialog in that pane (typically "Do you trust the files in this folder?" the first time in a repo). Tell the user which pane needs them, then `herdr agent wait <role> --timeout 300000` until it's idle. Never answer the dialog yourself.
+- If the handle is already taken by a live agent, stop and tell the user this slug is already in use (pick a different slug).
+- If it returns `agent_not_ready`, Claude Code is waiting on a startup dialog in that pane (typically "Do you trust the files in this folder?" the first time in a repo). Tell the user which pane needs them, then `herdr agent wait <handle> --timeout 300000` until it's idle. Never answer the dialog yourself.
 - Agents stay alive for the whole run, so the developer keeps context across fix rounds.
 
 ## 5 — Talking to an agent (use this for every step)
@@ -71,15 +73,15 @@ herdr agent start <role> --kind claude --pane <pane_id> --timeout 60000 -- --age
    > When finished, write your full reply (in your role's reply format) to `<handoff path>`, ending with a final line `STATUS: complete`, or `STATUS: blocked — <reason>` if you could not finish. Then reply only with the handoff path.
 
    Don't use the word "Herdr" in briefs; it could make the worker load Herdr's skill and start driving panes itself.
-2. Check the agent first with `herdr agent get <role>`. If it's `blocked`, `agent prompt` would be refused (`agent_blocked`): tell the user which pane needs them and `herdr agent wait <role>` before prompting.
+2. Check the agent first with `herdr agent get <handle>`. If it's `blocked`, `agent prompt` would be refused (`agent_blocked`): tell the user which pane needs them and `herdr agent wait <handle>` before prompting.
 3. Send a single-line prompt (never paste the brief itself):
-   `herdr agent prompt <role> "Read <brief path> and do what it says." --wait --timeout 600000`
+   `herdr agent prompt <handle> "Read <brief path> and do what it says." --wait --timeout 600000`
 4. When the command returns, check the handoff file for a `STATUS:` line:
    - **Present** → read it and continue.
-   - **Agent is `blocked`** (`herdr agent get <role>`) → it is waiting for a permission or a question in its pane. Tell the user: "<role> needs your input in its pane." Then `herdr agent wait <role> --timeout 600000` and check again. Never answer permission prompts for the user.
-   - **Timed out / still working** → `herdr agent wait <role> --timeout 600000` and check again.
+   - **Agent is `blocked`** (`herdr agent get <handle>`) → it is waiting for a permission or a question in its pane. Tell the user: "<role> needs your input in its pane." Then `herdr agent wait <handle> --timeout 600000` and check again. Never answer permission prompts for the user.
+   - **Timed out / still working** (`--wait` already blocks; don't poll) → `herdr agent wait <handle> --timeout 600000` and check again.
    - **`agent_prompt_stalled`** → the agent showed no activity within 5 seconds. Read the pane before doing anything; do not resend the prompt blindly.
-   - **Idle but no handoff file** → read the pane with `herdr agent read <role> --source recent-unwrapped --lines 80`, then send one short follow-up prompt asking it to write the handoff. If that fails too, stop and report to the user.
+   - **Idle but no handoff file** → read the pane with `herdr agent read <handle> --source recent-unwrapped --lines 80`, then send one short follow-up prompt asking it to write the handoff. If that fails too, stop and report to the user.
 5. Append one line to the plan's `## Run log`: `<step> | <role> | <model> | <result>`.
 
 ## Phase 1 — Plan
@@ -105,4 +107,4 @@ Report to the user:
 - "Nice to have" items and out-of-scope notes
 - Anything unresolved
 
-Leave the agent panes open so the user can scroll back through them. Tell the user the pane IDs and that they can close them with `herdr pane close <id>`, or ask you to close them.
+Then ask the user whether to close the agent panes (the ones this run created, by ID) or leave them open to scroll back through. Close them only on a yes; never close anything automatically. If they leave them open, list the pane IDs and mention `herdr pane close <id>`.

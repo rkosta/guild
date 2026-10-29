@@ -1,4 +1,4 @@
-# Guild — v3.1.0 (Herdr panes)
+# Guild — v3.2.0 (Herdr panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -56,7 +56,7 @@ Open a Herdr pane in your project, start `claude`, and run:
 /quest-herdr Add pagination to GET /orders, 20 items per page by default
 ```
 
-Layout it builds in the current tab:
+Layout it builds in the current tab (if your pane is under ~210 columns wide, it opens a new tab instead and says so, so the agents get the full width):
 ```
 ┌──────────────┬───────────┬───────────┐
 │              │ analyst   │ developer │
@@ -78,7 +78,7 @@ How it works:
   ```
 - Agents start with `acceptEdits`, so file edits don't ask. Shell commands (build, tests) still ask for permission **in that agent's pane**. The orchestrator notices the agent is blocked and tells you which pane needs you. It never approves anything on your behalf.
 - Each session is named `<slug>-<role>` (e.g. `add-login-developer`), so you can reopen it later with `claude --resume <name>` or `/resume`.
-- Agents stay alive for the whole run, so the developer remembers context across fix rounds. When the run ends, the panes stay open so you can scroll back; close them with `herdr pane close <id>` or ask the orchestrator.
+- Agents stay alive for the whole run, so the developer remembers context across fix rounds. When the run ends, the panes stay open so you can scroll back; at the end the orchestrator asks whether to close them (it never closes anything on its own).
 
 ## Tiers
 
@@ -123,9 +123,9 @@ Extra tools beyond file/Bash access: all agents get `codegraph_explore` (used on
 Plans and handoffs are git-ignored through `.git/info/exclude`, so `.gitignore` is never touched. Delete `.guild/` whenever you like.
 
 ## Known limits (Herdr version)
-- Only one run at a time per Herdr session (agent names must be unique).
+- At the start it lists panes left over from earlier runs and asks once whether to close them (never without your yes). Agent handles are `<slug>-<role>`, so leftovers don't block a new run; just don't reuse a slug that's still alive.
 - The first time Claude Code opens a repo it may ask whether to trust the folder. The orchestrator tells you which pane is waiting; answer it there.
-- On a narrow screen the 2×2 grid gets cramped; the orchestrator checks and offers a separate tab instead.
+- On a narrow screen the 2×2 grid gets cramped; the orchestrator automatically puts the agents in a separate tab.
 - If an agent's prompt looks unusual, Herdr may report it as idle instead of blocked. If the orchestrator seems stuck, check the agent panes.
 - Long tasks: the orchestrator waits in 10-minute chunks and keeps waiting until the handoff file appears.
 
