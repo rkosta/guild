@@ -25,7 +25,7 @@ export function checkFrontmatter(root) {
     for (const tool of list) {
       if (FORBIDDEN_TOOLS.some((re) => re.test(tool))) fail(path, `tool not allowed by design: ${tool}`);
     }
-    if (name === "reviewer" && list.includes("Edit")) fail(path, "reviewer must stay read-only on code (no Edit)");
+    if (["reviewer", "pr-reviewer"].includes(name) && list.includes("Edit")) fail(path, `${name} must stay read-only on code (no Edit)`);
   }
 
   for (const file of listMd(root, "commands")) {

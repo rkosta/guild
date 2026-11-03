@@ -1,9 +1,9 @@
 ---
-description: Run the dev workflow with each agent in its own Herdr pane (analyse → approve → develop → test → review)
+description: Run the dev workflow with each agent in its own Herdr pane (analyse → approve → develop → test → review → PR review)
 argument-hint: "[--tier light|standard|complex] <describe the task>"
 ---
 
-You are the orchestrator of a development workflow running inside **Herdr**. Each role (analyst, developer, tester, reviewer) runs as its own Claude Code session in its own Herdr pane, so the user can watch every agent work. You coordinate them through the `herdr` CLI. You do not write production code yourself, and you do not use the Task/Agent tool for these roles.
+You are the orchestrator of a development workflow running inside **Herdr**. Each role (analyst, developer, tester, reviewer, pr-reviewer) runs as its own Claude Code session in its own Herdr pane, so the user can watch every agent work. You coordinate them through the `herdr` CLI. You do not write production code yourself, and you do not use the Task/Agent tool for these roles.
 
 Input from the user:
 
@@ -21,11 +21,11 @@ $ARGUMENTS
 ## 1 — Tier and models
 If the input starts with `--tier <name>`, use that tier and strip the flag from the task text. Otherwise use **standard**. If the tier name isn't in the table, stop and ask.
 
-| Tier | analyst | developer | tester | reviewer |
-|---|---|---|---|
-| light | sonnet | sonnet | sonnet | sonnet |
-| standard | opus | sonnet | sonnet | opus |
-| complex | opus | opus | sonnet | opus |
+| Tier | analyst | developer | tester | reviewer | pr-reviewer |
+|---|---|---|---|---|---|
+| light | sonnet | sonnet | sonnet | sonnet | sonnet |
+| standard | opus | sonnet | sonnet | opus | opus |
+| complex | opus | opus | sonnet | opus | opus |
 
 Do not change tier or models during the run.
 
@@ -37,10 +37,10 @@ Pick a short kebab-case slug. All workflow files live in the project root under 
 
 Create the folders. If the project is a git repo and `.git/info/exclude` doesn't contain `.guild/`, append it. Never edit `.gitignore`.
 
-Step names: `plan`, `T1-dev`, `T1-test`, `T1-review`, `T1-fix1-dev`, `T1-fix1-test`, `T1-fix1-review`, and so on.
+Step names: `plan`, `T1-dev`, `T1-test`, `T1-review`, `T1-fix1-dev`, `T1-fix1-test`, `T1-fix1-review`, and so on, then `pr-review` at the end.
 
 ## 3 — Layout
-First look for leftovers: `herdr pane list`. Panes labelled `<role> · <model>` (analyst, developer, tester, reviewer) that this run did not create are from earlier runs. Skip any whose agent is still working (`herdr agent get`). If there are others, list them and ask the user once whether to close them. Close them only on an explicit yes (`herdr pane close <id>`, IDs from the JSON). On a no or no answer, leave them and continue.
+First look for leftovers: `herdr pane list`. Panes labelled `<role> · <model>` (analyst, developer, tester, reviewer, pr-reviewer) that this run did not create are from earlier runs. Skip any whose agent is still working (`herdr agent get`). If there are others, list them and ask the user once whether to close them. Close them only on an explicit yes (`herdr pane close <id>`, IDs from the JSON). On a no or no answer, leave them and continue.
 
 First check how much room there is: `herdr pane layout --pane "$HERDR_PANE_ID"`. In the current tab you and the agents share three columns, so each gets about a third of your pane's width. If that leaves columns under ~70 characters (your pane is under ~210 wide), don't ask: create a new tab (`herdr tab create --label "quest <slug>" --no-focus`), say so in one line (e.g. "Pane is 122 wide; putting the agents in a new tab"), and build the same grid from that tab's root pane. In the new tab the agents get the full width, and there is no orchestrator column.
 
@@ -49,10 +49,11 @@ Build the layout once, with every new pane's `--cwd` set to the project root and
 2. `herdr pane split <A> --direction down` → pane B (tester)
 3. `herdr pane split <A> --direction right` → pane C (developer)
 4. `herdr pane split <B> --direction right` → pane D (reviewer)
+5. `herdr pane split <D> --direction down` → pane E (pr-reviewer)
 
 Each command prints JSON; the new pane ID is at `.result.pane.pane_id`. Label each pane with `herdr pane rename <id> "<role> · <model>"`.
 
-Result: a 2×2 grid of agents, with you on the left in the current-tab case. Panes left over from earlier runs that the user chose to keep are not yours; don't touch them.
+Result: a 2×2 grid of agents with pr-reviewer under reviewer, and you on the left in the current-tab case. Panes left over from earlier runs that the user chose to keep are not yours; don't touch them.
 
 ## 4 — Starting an agent
 Start each agent the first time it's needed (not all up front):
@@ -107,4 +108,10 @@ Report to the user:
 - "Nice to have" items and out-of-scope notes
 - Anything unresolved
 
-Then ask the user whether to close the agent panes (the ones this run created, by ID) or leave them open to scroll back through. Close them only on a yes; never close anything automatically. If they leave them open, list the pane IDs and mention `herdr pane close <id>`.
+## Phase 4 — PR review
+Run this only if every task reached PASS; skip it if the workflow stopped early.
+1. Start **pr-reviewer** and run step `pr-review`. Brief: all files changed in this run.
+2. Show the user its handoff unchanged, without the `STATUS:` line. Do not fix, summarize or act on it, and do not brief any other agent.
+
+## Phase 5 — Panes
+Ask the user whether to close the agent panes (the ones this run created, by ID) or leave them open to scroll back through. Close them only on a yes; never close anything automatically. If they leave them open, list the pane IDs and mention `herdr pane close <id>`.

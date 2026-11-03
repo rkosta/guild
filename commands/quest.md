@@ -1,5 +1,5 @@
 ---
-description: Run the dev workflow (analyse → approve → develop → test → review) on a task
+description: Run the dev workflow (analyse → approve → develop → test → review → PR review) on a task
 argument-hint: "[--tier light|standard|complex] <describe the task>"
 ---
 
@@ -12,11 +12,11 @@ $ARGUMENTS
 ## Tier and models
 If the input starts with `--tier <name>`, use that tier and strip the flag from the task text. If no tier is given, use **standard**. If the tier name isn't in the table, stop and ask the user which tier to use.
 
-| Tier | analyst | developer | tester | reviewer |
-|---|---|---|---|
-| light | sonnet | sonnet | sonnet | sonnet |
-| standard | opus | sonnet | sonnet | opus |
-| complex | opus | opus | sonnet | opus |
+| Tier | analyst | developer | tester | reviewer | pr-reviewer |
+|---|---|---|---|---|---|
+| light | sonnet | sonnet | sonnet | sonnet | sonnet |
+| standard | opus | sonnet | sonnet | opus | opus |
+| complex | opus | opus | sonnet | opus | opus |
 
 **Every time** you launch a subagent (including re-runs in the fix loop), pass the model from this table for the chosen tier explicitly. Never rely on the agent's own default. Do not change tier or models mid-run.
 
@@ -44,5 +44,11 @@ Report to the user in a short summary:
 - Tests added and final test result
 - Any "Nice to have" items and out-of-scope notes collected along the way
 - Anything left unresolved
+
+## Phase 4 — PR review
+Run this only if every task reached PASS; skip it if the workflow stopped early.
+1. Run the **pr-reviewer** subagent once, with all files changed in this run.
+2. Append `final | pr-reviewer | <model> | done` (or `skipped`) to the plan's `## Run log`.
+3. Show the user its output unchanged. Do not fix, summarize or act on it, and do not run any other agent. The workflow ends here.
 
 Keep your messages to the user short between phases; the plan file holds the details.

@@ -68,6 +68,13 @@ test("frontmatter: reviewer cannot get Edit", () => {
   assert.match(errors.join("\n"), /reviewer must stay read-only/);
 });
 
+test("frontmatter: pr-reviewer cannot get Edit", () => {
+  const errors = errorsFor(checkFrontmatter, (edit) =>
+    edit("agents/pr-reviewer.md", (t) => t.replace("tools: Read,", "tools: Read, Edit,")),
+  );
+  assert.match(errors.join("\n"), /pr-reviewer must stay read-only/);
+});
+
 test("frontmatter: missing block is reported", () => {
   const errors = errorsFor(checkFrontmatter, (edit) =>
     edit("agents/analyst.md", (t) => t.replace(/^---\n[\s\S]*?\n---\n/, "")),

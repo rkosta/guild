@@ -2,6 +2,10 @@
 
 Newest first. The top entry must match `VERSION` and the README title (`pnpm run check` verifies this).
 
+## v3.4.0
+
+New `pr-reviewer` agent, a fifth column in the tier table (sonnet on light, opus otherwise). After the wrap-up, if every task passed, it runs `pr-review-toolkit:review-pr` once in auto mode and the orchestrator returns the output unchanged; nothing is fixed. `simplify` is left out because that agent edits code. In `/quest-herdr` it gets a fifth pane under the reviewer, and the close-panes question moves after it. Also fixes the tier tables' delimiter rows, which had one column too few.
+
 ## v3.3.0
 
 `/quest-herdr`: agents now start with `--permission-mode auto` instead of `acceptEdits`, so first runs no longer block on permission prompts. Subagent mode is unchanged (subagents inherit the main session's mode).

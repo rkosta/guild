@@ -1,4 +1,4 @@
-# Guild — v3.3.0 (Herdr panes)
+# Guild — v3.4.0 (Herdr panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -9,7 +9,7 @@ A small multi-agent workflow for Claude Code, installed once in your user folder
 | `/quest-herdr` | Each agent in its own Herdr pane — you watch them all work | You're inside Herdr |
 | `/quest` | Subagents inside one session | Anywhere else |
 
-Both use the same four agent files, the same tiers and the same plan format.
+Both use the same five agent files, the same tiers and the same plan format.
 
 ## Install
 
@@ -32,7 +32,9 @@ Copy-Item agents\*.md   "$HOME\.claude\agents\"
 Copy-Item commands\*.md "$HOME\.claude\commands\"
 ```
 
-Restart Claude Code, then check with `/agents` — the four agents should show under **User**.
+Restart Claude Code, then check with `/agents` — the five agents should show under **User**.
+
+The final PR review needs the `pr-review-toolkit` plugin from the official Claude plugin marketplace. Without it, the run still finishes and the last step reports that it could not run.
 
 ### Extra setup for the Herdr version
 1. Install Herdr's Claude Code integration, so Herdr reports agent state (working / idle / blocked) reliably instead of guessing from the screen:
@@ -63,7 +65,8 @@ Layout it builds in the current tab (if your pane is under ~210 columns wide, it
 │ orchestrator │           │           │
 │   (you)      ├───────────┼───────────┤
 │              │ tester    │ reviewer  │
-│              │           │           │
+│              │           ├───────────┤
+│              │           │pr-reviewer│
 └──────────────┴───────────┴───────────┘
 ```
 
@@ -84,11 +87,11 @@ How it works:
 
 The tier sets which model each agent runs on. Default is **standard**.
 
-| Tier | analyst | developer | tester | reviewer |
-|---|---|---|---|
-| light | sonnet | sonnet | sonnet | sonnet |
-| standard | opus | sonnet | sonnet | opus |
-| complex | opus | opus | sonnet | opus |
+| Tier | analyst | developer | tester | reviewer | pr-reviewer |
+|---|---|---|---|---|---|
+| light | sonnet | sonnet | sonnet | sonnet | sonnet |
+| standard | opus | sonnet | sonnet | opus | opus |
+| complex | opus | opus | sonnet | opus | opus |
 
 ```
 /quest-herdr --tier complex Replace the auth middleware with JWT validation
@@ -108,7 +111,7 @@ analyst ──► plan.md ──► YOU APPROVE
             └── CHANGES_REQUESTED ──┘  (max 2 rounds, then escalate to you)
                                     │ PASS
                                     ▼
-                               next task → summary
+                               next task → summary → pr-reviewer → its output, unchanged, to you
 ```
 
 | Agent | Job | Can edit code? |
@@ -117,6 +120,7 @@ analyst ──► plan.md ──► YOU APPROVE
 | developer | Implements one task at a time, applies review fixes | Yes |
 | tester | Writes and runs tests after implementation | Tests only |
 | reviewer | Checks against acceptance criteria, runs build + tests | No — only writes its handoff file |
+| pr-reviewer | Runs `pr-review-toolkit:review-pr` once at the end (all aspects except `simplify`, which edits code) and returns the output. Nothing is fixed automatically | No — only writes its handoff file |
 
 Extra tools beyond file/Bash access: all agents get `codegraph_explore` (used only if the project has `.codegraph/`); analyst, developer and reviewer also get the Figma read tools (`create_session` first) and analyst/developer get `Skill` (for `figma-design-to-code`). If an MCP server isn't installed, those tools are simply unavailable. Agents never get Herdr or Artifact tools.
 

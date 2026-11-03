@@ -10,6 +10,7 @@ agents/              subagent definitions → installed to ~/.claude/agents/
   developer.md       implements one task at a time, applies review fixes
   tester.md          writes + runs tests after each task (test files only)
   reviewer.md        verifies against acceptance criteria; never edits code
+  pr-reviewer.md     runs pr-review-toolkit:review-pr at the end; returns its output, never fixes
 commands/            slash commands → installed to ~/.claude/commands/
   quest.md        orchestrator, subagent mode (works anywhere)
   quest-herdr.md  orchestrator, Herdr mode (one pane per agent)
@@ -28,11 +29,12 @@ VERSION              current version, single source of truth
 1. `/quest` or `/quest-herdr` receives a task (optionally `--tier light|standard|complex`, default `standard`).
 2. **analyst** writes `.guild/<slug>/plan.md` in the target project → orchestrator **stops for user approval**.
 3. Per task: **developer** → **tester** → **reviewer**. On CHANGES_REQUESTED, back to developer, max **2 fix rounds**, then escalate to the user.
-4. Orchestrator logs every agent run in the plan's `## Run log` and ends with a summary (tier, models, files, tests, leftovers).
+4. Orchestrator logs every agent run in the plan's `## Run log` and gives a summary (tier, models, files, tests, leftovers).
+5. If every task passed, **pr-reviewer** runs once and the orchestrator shows the user its output unchanged. Nothing acts on it.
 
 ### Two orchestrator modes, one set of agents
 - **Subagent mode** (`quest.md`): agents run as subagents in one session; the model is passed per launch.
-- **Herdr mode** (`quest-herdr.md`): each agent is a separate `claude --agent <role> --model <m>` session in its own Herdr pane (2×2 grid right of the orchestrator). Control via the `herdr` CLI (`agent start`, `agent prompt --wait`, `agent wait`, `agent get`). Content via files: orchestrator writes `briefs/<step>-<role>.md`, agent writes `handoffs/<step>-<role>.md` ending with `STATUS: complete|blocked — reason`. Agents never talk to each other directly; the orchestrator relays.
+- **Herdr mode** (`quest-herdr.md`): each agent is a separate `claude --agent <role> --model <m>` session in its own Herdr pane (2×2 grid right of the orchestrator, pr-reviewer under reviewer). Control via the `herdr` CLI (`agent start`, `agent prompt --wait`, `agent wait`, `agent get`). Content via files: orchestrator writes `briefs/<step>-<role>.md`, agent writes `handoffs/<step>-<role>.md` ending with `STATUS: complete|blocked — reason`. Agents never talk to each other directly; the orchestrator relays.
 
 ## Decisions already made (don't undo without asking)
 - **Installed at user level** (`~/.claude/`), never per project. Target projects must not need any setup or a CLAUDE.md.
@@ -41,13 +43,14 @@ VERSION              current version, single source of truth
 - **Approval checkpoint only after the plan.** No per-task approvals.
 - **Tests are written after implementation**, not TDD. Tester reuses the existing framework, never adds a new one, never edits production code.
 - **Reviewer is read-only on code.** It has `Write` only so it can save its handoff file in Herdr mode.
+- **PR reviewer only reports.** It runs `pr-review-toolkit:review-pr` with every aspect except `simplify` (the simplifier edits code), and the orchestrator returns the output unchanged. It needs `Skill` and `Agent` because the skill launches review agents, and `Write` only for its handoff file.
 - **Tiers are chosen by the user**, never by the analyst. No haiku in any tier.
 
-  | Tier | analyst | developer | tester | reviewer |
-  |---|---|---|---|---|
-  | light | sonnet | sonnet | sonnet | sonnet |
-  | standard | opus | sonnet | sonnet | opus |
-  | complex | opus | opus | sonnet | opus |
+  | Tier | analyst | developer | tester | reviewer | pr-reviewer |
+  |---|---|---|---|---|---|
+  | light | sonnet | sonnet | sonnet | sonnet | sonnet |
+  | standard | opus | sonnet | sonnet | opus | opus |
+  | complex | opus | opus | sonnet | opus | opus |
 
 - Agent files keep `model: inherit`; the orchestrator always passes the model explicitly.
 - **Herdr mode uses brief/handoff files from the first prompt.** Herdr's own skill says to ask for file output only as a fallback; we deviate on purpose because handoffs are the workflow's record and its completion signal (`STATUS:` line). Everything else in `quest-herdr.md` follows the skill's rules (no bare `herdr`, IDs from JSON, `--no-focus`, inspect before resending, don't answer dialogs). Briefs must not mention "Herdr", so workers don't load the skill.
