@@ -91,7 +91,7 @@ test("drift: tier table out of sync in one file", () => {
 
 test("drift: haiku in a tier is rejected", () => {
   const errors = errorsFor(checkDrift, (edit) => {
-    for (const f of ["commands/quest.md", "commands/quest-herdr.md", "README.md", "CLAUDE.md"]) {
+    for (const f of ["commands/quest.md", "commands/quest-herdr.md", "commands/quest-orca.md", "README.md", "CLAUDE.md"]) {
       edit(f, (t) => t.replace("| light | sonnet | sonnet | sonnet | sonnet |", "| light | haiku | sonnet | sonnet | sonnet |"));
     }
   });
@@ -145,4 +145,33 @@ test("contract: briefs in quest-herdr must not say Herdr", () => {
     edit("commands/quest-herdr.md", (t) => t + "\n> Use the Herdr CLI.\n"),
   );
   assert.match(errors.join("\n"), /brief text must not mention Herdr/);
+});
+
+test("contract: agents must not mention Orca", () => {
+  const errors = errorsFor(checkContract, (edit) =>
+    edit("agents/developer.md", (t) => t + "\nReport with orca orchestration send.\n"),
+  );
+  assert.match(errors.join("\n"), /agents\/developer\.md: .*must not mention Orca/);
+});
+
+test("drift: quest-orca tier table must match", () => {
+  const errors = errorsFor(checkDrift, (edit) =>
+    edit("commands/quest-orca.md", (t) => t.replace("| complex | opus | opus | sonnet | opus |", "| complex | opus | sonnet | sonnet | opus |")),
+  );
+  assert.match(errors.join("\n"), /commands\/quest-orca\.md: tier table differs/);
+});
+
+test("contract: quest-orca needs STATUS lines and worker_done", () => {
+  const errors = errorsFor(checkContract, (edit) =>
+    edit("commands/quest-orca.md", (t) => t.replaceAll("STATUS: blocked", "STATUS: stuck").replaceAll("worker_done", "worker-finished")),
+  );
+  assert.match(errors.join("\n"), /quest-orca\.md: must define both 'STATUS: complete' and 'STATUS: blocked'/);
+  assert.match(errors.join("\n"), /quest-orca\.md: must tell workers to report with worker_done/);
+});
+
+test("contract: briefs in quest-orca must not say Orca", () => {
+  const errors = errorsFor(checkContract, (edit) =>
+    edit("commands/quest-orca.md", (t) => t + "\n> Use the orca CLI to read other panes.\n"),
+  );
+  assert.match(errors.join("\n"), /brief text must not mention Orca/);
 });

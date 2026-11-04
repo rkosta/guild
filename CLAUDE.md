@@ -14,6 +14,7 @@ agents/              subagent definitions → installed to ~/.claude/agents/
 commands/            slash commands → installed to ~/.claude/commands/
   quest.md        orchestrator, subagent mode (works anywhere)
   quest-herdr.md  orchestrator, Herdr mode (one pane per agent)
+  quest-orca.md   orchestrator, Orca mode (one pane per agent, supervised Orca workers)
 scripts/
   install.sh         copies agents + commands into ~/.claude/ (macOS/Linux)
 tools/check/         checkers run by `pnpm run check` (frontmatter, drift, contract)
@@ -26,15 +27,16 @@ VERSION              current version, single source of truth
 
 ## How the workflow works
 
-1. `/quest` or `/quest-herdr` receives a task (optionally `--tier light|standard|complex`, default `standard`).
+1. `/quest`, `/quest-herdr` or `/quest-orca` receives a task (optionally `--tier light|standard|complex`, default `standard`).
 2. **analyst** writes `.guild/<slug>/plan.md` in the target project → orchestrator **stops for user approval**.
 3. Per task: **developer** → **tester** → **reviewer**. On CHANGES_REQUESTED, back to developer, max **2 fix rounds**, then escalate to the user.
 4. Orchestrator logs every agent run in the plan's `## Run log` and gives a summary (tier, models, files, tests, leftovers).
 5. If every task passed, **pr-reviewer** runs once and the orchestrator shows the user its output unchanged. Nothing acts on it.
 
-### Two orchestrator modes, one set of agents
+### Three orchestrator modes, one set of agents
 - **Subagent mode** (`quest.md`): agents run as subagents in one session; the model is passed per launch.
 - **Herdr mode** (`quest-herdr.md`): each agent is a separate `claude --agent <role> --model <m>` session in its own Herdr pane (2×2 grid right of the orchestrator, pr-reviewer under reviewer). Control via the `herdr` CLI (`agent start`, `agent prompt --wait`, `agent wait`, `agent get`). Content via files: orchestrator writes `briefs/<step>-<role>.md`, agent writes `handoffs/<step>-<role>.md` ending with `STATUS: complete|blocked — reason`. Agents never talk to each other directly; the orchestrator relays.
+- **Orca mode** (`quest-orca.md`): each agent is a `claude --agent <role> --model <m>` session in its own pane of a new Orca tab "quest <slug>" (same 2×2 grid, pr-reviewer under reviewer), started with `orca terminal create/split --command`. Each step is a supervised Orca worker task: `orca orchestration worker-start --terminal <h> --keep-open --run <run> --spec-file briefs/<step>-<role>.md`. Orca injects its own worker preamble (`ask`, `worker_done`), the agent writes the same handoff file with a `STATUS:` line and sends `worker_done --report-path <handoff>`, and Orca wakes the orchestrator, which runs `orchestration check`. Workers can `ask` the orchestrator mid-task; it answers from the plan or relays to the user.
 
 ## Decisions already made (don't undo without asking)
 - **Installed at user level** (`~/.claude/`), never per project. Target projects must not need any setup or a CLAUDE.md.
@@ -42,7 +44,7 @@ VERSION              current version, single source of truth
 - **Plans live in the target repo** under `.guild/`, git-ignored via `.git/info/exclude`. Never edit the target's `.gitignore`.
 - **Approval checkpoint only after the plan.** No per-task approvals.
 - **Tests are written after implementation**, not TDD. Tester reuses the existing framework, never adds a new one, never edits production code.
-- **Reviewer is read-only on code.** It has `Write` only so it can save its handoff file in Herdr mode.
+- **Reviewer is read-only on code.** It has `Write` only so it can save its handoff file in Herdr and Orca mode.
 - **PR reviewer only reports.** It runs `pr-review-toolkit:review-pr` with every aspect except `simplify` (the simplifier edits code), and the orchestrator returns the output unchanged. It needs `Skill` and `Agent` because the skill launches review agents, and `Write` only for its handoff file.
 - **Tiers are chosen by the user**, never by the analyst. No haiku in any tier.
 
@@ -54,12 +56,13 @@ VERSION              current version, single source of truth
 
 - Agent files keep `model: inherit`; the orchestrator always passes the model explicitly.
 - **Herdr mode uses brief/handoff files from the first prompt.** Herdr's own skill says to ask for file output only as a fallback; we deviate on purpose because handoffs are the workflow's record and its completion signal (`STATUS:` line). Everything else in `quest-herdr.md` follows the skill's rules (no bare `herdr`, IDs from JSON, `--no-focus`, inspect before resending, don't answer dialogs). Briefs must not mention "Herdr", so workers don't load the skill.
-- Herdr mode is a **separate command** for now; `quest.md` stays stable. Merging into one auto-detecting command (`HERDR_ENV=1`) is a possible later step.
+- **Orca mode uses supervised workers, not raw terminal input.** Chosen over a Herdr-style mirror so workers can ask questions and the orchestrator is woken instead of waiting. Panes are started by us (custom argv, so `--agent <role>` applies) and adopted with `worker-start --terminal`; a `--keep-open` pane takes the next task with its context intact. One Orca Run per quest (`run-create`) so mail from other runs never mixes in. Agents always go in a new tab (Orca's layout JSON has no pane sizes to decide otherwise). Cleanup is `orca terminal close`, only on the user's yes (`worker-release` won't close terminals we created). Briefs must not mention Orca; the preamble covers the protocol.
+- Herdr and Orca modes are **separate commands** for now; `quest.md` stays stable. Merging into one auto-detecting command (`HERDR_ENV=1`) is a possible later step.
 
 ## Rules for editing
-- **Agent files are shared by both modes.** Any change must work as a subagent *and* as a standalone `claude --agent` session. Mode-specific instructions (handoff files, STATUS lines) belong in the orchestrator's briefs, not in the agent files.
-- **The tier table exists in three places:** `quest.md`, `quest-herdr.md` and `README.md`. Change all three together.
-- **Phase logic is duplicated** across the two commands (approval, fix loop, run log, summary). When changing one, check whether the other needs the same change.
+- **Agent files are shared by all three modes.** Any change must work as a subagent *and* as a standalone `claude --agent` session. Mode-specific instructions (handoff files, STATUS lines) belong in the orchestrator's briefs, not in the agent files.
+- **The tier table exists in five places:** `quest.md`, `quest-herdr.md`, `quest-orca.md`, `README.md` and this file. Change them all together.
+- **Phase logic is duplicated** across the three commands (approval, fix loop, run log, summary). When changing one, check whether the others need the same change.
 - **YAML frontmatter:** quote any value that starts with `[`, `{`, `*`, `&`, `!`, `|`, `>`, `%`, `@` or contains a colon followed by a space. (`argument-hint` broke once because of an unquoted `[`.) `pnpm run check` validates them.
 - Keep prompts short and imperative. Each agent has a fixed **Reply format**; the orchestrator relies on it (e.g. `Verdict: PASS|CHANGES_REQUESTED`), so don't rename those fields casually.
 - Update the README when behavior changes. To release: bump `VERSION` and `package.json`, add a `CHANGELOG.md` entry on top, and update the README title. `pnpm run check` fails if they disagree.
@@ -73,12 +76,12 @@ VERSION              current version, single source of truth
 pnpm run check && pnpm test
 ./scripts/install.sh
 ```
-Restart Claude Code, check `/agents`. Test on a throwaway repo with a small `--tier light` task first. For Herdr mode: run inside a Herdr pane, with `herdr integration install claude` done and `"Bash(herdr *)"` allowed in `~/.claude/settings.json`.
+Restart Claude Code, check `/agents`. Test on a throwaway repo with a small `--tier light` task first. For Herdr mode: run inside a Herdr pane, with `herdr integration install claude` done and `"Bash(herdr *)"` allowed in `~/.claude/settings.json`. For Orca mode: run inside an Orca terminal, with `"Bash(orca *)"` allowed.
 
 ## Backlog (not started)
 - More workflows under the Guild name: `/hunt` (bug fix: reproduce → fix → regression test), `/expedition` (research, no code), `/siege` (big refactor/migration), `/audit` (read-only review)
 - Escalate a tier in the fix loop (e.g. retry on opus after 2 failed reviews)
-- Single command that auto-detects Herdr
+- Single command that auto-detects Herdr or Orca
 - Run independent tasks in parallel (pane or worktree per developer)
 - Git branch per task, auto-commit on PASS
 - Pull tasks from GitHub/Jira issues

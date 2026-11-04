@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { listMd, read, tierRows } from "./lib.mjs";
 
-const TIER_FILES = ["commands/quest.md", "commands/quest-herdr.md", "README.md", "CLAUDE.md"];
+const TIER_FILES = ["commands/quest.md", "commands/quest-herdr.md", "commands/quest-orca.md", "README.md", "CLAUDE.md"];
 
 export function checkDrift(root) {
   const errors = [];

@@ -16,7 +16,8 @@ export function checkContract(root) {
     } else if (!/^## Reply format\s*$/m.test(text)) {
       fail(path, "missing '## Reply format' section");
     }
-    if (/herdr/i.test(text)) fail(path, "agent files are shared by both modes and must not mention Herdr");
+    if (/herdr/i.test(text)) fail(path, "agent files are shared by every mode and must not mention Herdr");
+    if (/\borca\b/i.test(text)) fail(path, "agent files are shared by every mode and must not mention Orca");
     if (/^STATUS:/m.test(text)) fail(path, "STATUS lines belong in the orchestrator's briefs, not the agent file");
   }
 
@@ -25,7 +26,7 @@ export function checkContract(root) {
   if (!/\*\*Verdict:\*\*\s*PASS or CHANGES_REQUESTED/.test(reviewer)) {
     fail("agents/reviewer.md", "reply format must contain '**Verdict:** PASS or CHANGES_REQUESTED'");
   }
-  for (const file of ["commands/quest.md", "commands/quest-herdr.md"]) {
+  for (const file of ["commands/quest.md", "commands/quest-herdr.md", "commands/quest-orca.md"]) {
     const text = read(root, file);
     if (!/CHANGES_REQUESTED/.test(text) || !/\bPASS\b/.test(text)) fail(file, "must handle both PASS and CHANGES_REQUESTED verdicts");
   }
@@ -38,6 +39,18 @@ export function checkContract(root) {
   herdr.split("\n").forEach((line, i) => {
     if (/^\s*>/.test(line) && /herdr/i.test(line)) {
       fail("commands/quest-herdr.md", `line ${i + 1}: brief text must not mention Herdr (workers would load its skill)`);
+    }
+  });
+
+  // Orca mode: same handoff STATUS lines, plus Orca's worker_done; briefs stay Orca-free.
+  const orca = read(root, "commands/quest-orca.md");
+  if (!orca.includes("STATUS: complete") || !orca.includes("STATUS: blocked")) {
+    fail("commands/quest-orca.md", "must define both 'STATUS: complete' and 'STATUS: blocked' handoff lines");
+  }
+  if (!orca.includes("worker_done")) fail("commands/quest-orca.md", "must tell workers to report with worker_done");
+  orca.split("\n").forEach((line, i) => {
+    if (/^\s*>/.test(line) && /\borca\b/i.test(line)) {
+      fail("commands/quest-orca.md", `line ${i + 1}: brief text must not mention Orca (Orca's preamble covers the protocol)`);
     }
   });
 

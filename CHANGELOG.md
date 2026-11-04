@@ -2,6 +2,10 @@
 
 Newest first. The top entry must match `VERSION` and the README title (`pnpm run check` verifies this).
 
+## v3.5.0
+
+New `/quest-orca`: the same workflow inside the Orca IDE. Agents run in their own Orca tab, in the same grid as Herdr mode (`claude --agent <role> --model <m>`). Each step is a supervised Orca worker task (`orchestration worker-start --terminal`), so workers report with `worker_done`, can `ask` the orchestrator questions, and Orca wakes the orchestrator instead of it waiting. Briefs, handoff files and `STATUS:` lines work as in Herdr mode. The analyst now has `Bash`, limited by its instructions to read-only inspection, so it can send `worker_done` (without it, every plan step ended in an Orca escalation). The plan's `## Workflow` models line now includes pr-reviewer. The checkers now cover quest-orca: tier table, verdicts, STATUS lines, `worker_done`, and no "Orca" in briefs or agent files.
+
 ## v3.4.0
 
 New `pr-reviewer` agent, a fifth column in the tier table (sonnet on light, opus otherwise). After the wrap-up, if every task passed, it runs `pr-review-toolkit:review-pr` once in auto mode and the orchestrator returns the output unchanged; nothing is fixed. `simplify` is left out because that agent edits code. In `/quest-herdr` it gets a fifth pane under the reviewer, and the close-panes question moves after it. Also fixes the tier tables' delimiter rows, which had one column too few.
