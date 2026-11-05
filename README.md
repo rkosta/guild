@@ -1,4 +1,4 @@
-# Guild — v3.5.0 (Herdr and Orca panes)
+# Guild — v3.5.1 (Herdr and Orca panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -150,7 +150,7 @@ analyst ──► plan.md ──► YOU APPROVE
 
 Extra tools beyond file/Bash access: all agents get `codegraph_explore` (used only if the project has `.codegraph/`); analyst, developer and reviewer also get the Figma read tools (`create_session` first) and analyst/developer get `Skill` (for `figma-design-to-code`). If an MCP server isn't installed, those tools are simply unavailable. Agents never get Herdr or Artifact tools, and the agent files never mention Herdr or Orca.
 
-Plans and handoffs are git-ignored through `.git/info/exclude`, so `.gitignore` is never touched. Delete `.guild/` whenever you like.
+Plans and handoffs are git-ignored through `.git/info/exclude`, so `.gitignore` is never touched. Linters and formatters don't read that file, so they may still see `.guild/`. Agents ignore those findings and never edit lint/format config to hide them, and they run formatters in write mode only on the files they changed. Delete `.guild/` whenever you like.
 
 ## Known limits (Herdr version)
 - At the start it lists panes left over from earlier runs and asks once whether to close them (never without your yes). Agent handles are `<slug>-<role>`, so leftovers don't block a new run; just don't reuse a slug that's still alive.

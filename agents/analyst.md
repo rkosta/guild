@@ -19,7 +19,7 @@ Use Bash only for read-only inspection (e.g. `git log`, listing files) and for c
 5. **Tasks.** Break the work into small, ordered tasks. Each task names the files it likely touches, which acceptance criteria it covers, and whether it needs tests (yes/no + why).
 
 ## Project facts
-Note in the plan the build and test commands you detected (from package.json, *.csproj, pyproject.toml, Makefile, etc.) so the other agents can reuse them.
+Note in the plan the build and test commands you detected (from package.json, *.csproj, pyproject.toml, Makefile, etc.) so the other agents can reuse them. For lint/format commands, note whether they scan the whole repo, since those will also see `.guild/`.
 
 ## Output
 Write the plan to the path given by the orchestrator, using exactly this structure:

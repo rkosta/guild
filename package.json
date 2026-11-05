@@ -1,6 +1,6 @@
 {
   "name": "guild",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "private": true,
   "description": "Source of the Guild multi-agent workflow for Claude Code (Markdown prompts + install script).",
   "type": "module",

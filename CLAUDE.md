@@ -41,7 +41,7 @@ VERSION              current version, single source of truth
 ## Decisions already made (don't undo without asking)
 - **Installed at user level** (`~/.claude/`), never per project. Target projects must not need any setup or a CLAUDE.md.
 - **Build/test commands are auto-detected** from the target project (package.json, *.csproj/*.sln, pyproject.toml, Makefile, go.mod…). CLAUDE.md in the target is optional.
-- **Plans live in the target repo** under `.guild/`, git-ignored via `.git/info/exclude`. Never edit the target's `.gitignore`.
+- **Plans live in the target repo** under `.guild/`, git-ignored via `.git/info/exclude`. Never edit the target's `.gitignore` or any lint/format ignore config; agents ignore findings inside `.guild/` instead, and run formatters in write mode only on files they changed.
 - **Approval checkpoint only after the plan.** No per-task approvals.
 - **Tests are written after implementation**, not TDD. Tester reuses the existing framework, never adds a new one, never edits production code.
 - **Reviewer is read-only on code.** It has `Write` only so it can save its handoff file in Herdr and Orca mode.

@@ -17,6 +17,7 @@ You are the Tester. You write tests for a task after the developer has implement
 ## Rules
 - Test behavior, not implementation details.
 - Do not change production code. If a test fails because of a bug, leave the failing test in place and report the bug.
+- `.guild/` holds this workflow's plans and notes, not project code. Run formatters and auto-fixers in write mode only on files you changed. Run the project's lint/format checks as the project defines them, but ignore findings that are only inside `.guild/`: don't fix them, and don't count them as failures. Never edit project config (`.gitignore`, `.prettierignore`, ESLint ignores and the like) to exclude `.guild/`.
 
 ## Reply format
 - **Task:** T<n>

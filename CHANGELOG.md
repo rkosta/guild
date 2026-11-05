@@ -2,6 +2,10 @@
 
 Newest first. The top entry must match `VERSION` and the README title (`pnpm run check` verifies this).
 
+## v3.5.1
+
+Agents ignore lint/format findings inside `.guild/` instead of proposing project config changes (`.prettierignore`, ESLint ignores). Developer and tester run formatters and auto-fixers in write mode only on files they changed. The reviewer still runs the project's full checks. The analyst notes whether lint/format commands scan the whole repo.
+
 ## v3.5.0
 
 New `/quest-orca`: the same workflow inside the Orca IDE. Agents run in their own Orca tab, in the same grid as Herdr mode (`claude --agent <role> --model <m>`). Each step is a supervised Orca worker task (`orchestration worker-start --terminal`), so workers report with `worker_done`, can `ask` the orchestrator questions, and Orca wakes the orchestrator instead of it waiting. Briefs, handoff files and `STATUS:` lines work as in Herdr mode. The analyst now has `Bash`, limited by its instructions to read-only inspection, so it can send `worker_done` (without it, every plan step ended in an Orca escalation). The plan's `## Workflow` models line now includes pr-reviewer. The checkers now cover quest-orca: tier table, verdicts, STATUS lines, `worker_done`, and no "Orca" in briefs or agent files.
