@@ -1,4 +1,4 @@
-# Guild — v3.5.1 (Herdr and Orca panes)
+# Guild — v3.5.2 (Herdr and Orca panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -103,7 +103,7 @@ The agents get their own tab, "quest <slug>", with the same grid (pr-reviewer un
 
 How it differs from the Herdr version:
 - Each step is a **supervised Orca worker** task. Orca adds its own short preamble to the brief, telling the agent how to report back. The agent still writes the same handoff file, then sends `worker_done`.
-- The orchestrator doesn't wait or poll. It ends its turn, and Orca wakes it when a worker reports.
+- The orchestrator waits on Orca's mailbox (`check --wait`) and carries on as soon as a worker reports. You don't need to nudge it. While it waits you can't chat with it (press Escape to interrupt), same as in the Herdr version.
 - A worker can **ask the orchestrator a question** mid-task. The orchestrator answers from the plan, or asks you and passes your answer on.
 - Each quest gets its own Orca Run, so its messages never mix with other runs.
 - If an agent gets stuck on a permission prompt or the first-run "trust this folder" dialog, the orchestrator tells you which pane needs you. It never answers for you.
@@ -157,7 +157,7 @@ Plans and handoffs are git-ignored through `.git/info/exclude`, so `.gitignore` 
 - The first time Claude Code opens a repo it may ask whether to trust the folder. The orchestrator tells you which pane is waiting; answer it there.
 - On a narrow screen the 2×2 grid gets cramped; the orchestrator automatically puts the agents in a separate tab.
 - If an agent's prompt looks unusual, Herdr may report it as idle instead of blocked. If the orchestrator seems stuck, check the agent panes.
-- Long tasks: the orchestrator waits in 10-minute chunks and keeps waiting until the handoff file appears.
+- Long tasks: the orchestrator waits in 9-minute chunks (inside Claude Code's 10-minute limit for one command) and keeps waiting until the handoff file appears.
 
 ## Ideas for later
 - Escalate a tier in the fix loop (e.g. retry on opus after 2 failed reviews)

@@ -2,6 +2,10 @@
 
 Newest first. The top entry must match `VERSION` and the README title (`pnpm run check` verifies this).
 
+## v3.5.2
+
+`/quest-orca`: the orchestrator now waits for worker mail with `orchestration check --wait` (9-minute chunks, Bash tool timeout raised to 10 minutes) instead of ending its turn. Orca's "You have N orchestration messages" notice only arrived when the user typed something, so runs stalled until someone asked for a status. `/quest-herdr`: blocking `herdr` calls now run with the Bash tool timeout raised to 10 minutes and wait in 9-minute chunks, so the default 2-minute Bash timeout no longer cuts them off.
+
 ## v3.5.1
 
 Agents ignore lint/format findings inside `.guild/` instead of proposing project config changes (`.prettierignore`, ESLint ignores). Developer and tester run formatters and auto-fixers in write mode only on files they changed. The reviewer still runs the project's full checks. The analyst notes whether lint/format commands scan the whole repo.

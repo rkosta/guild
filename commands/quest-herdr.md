@@ -17,6 +17,7 @@ $ARGUMENTS
   - Read every ID from JSON responses; never guess or derive IDs.
   - Errors come back as JSON on stderr (exit 1). A timeout or stalled response does not prove a prompt wasn't delivered: inspect with `herdr agent get` / `herdr agent read` before sending anything again.
   - Only close panes this run created, and only when the user asks.
+  - Run every blocking call (`agent start`, `agent prompt --wait`, `agent wait`) in the foreground with the Bash tool's timeout set to 600000. The default 2 minutes would cut them off before Herdr's own timeout.
 
 ## 1 — Tier and models
 If the input starts with `--tier <name>`, use that tier and strip the flag from the task text. Otherwise use **standard**. If the tier name isn't in the table, stop and ask.
@@ -76,11 +77,11 @@ herdr agent start <slug>-<role> --kind claude --pane <pane_id> --timeout 60000 -
    Don't use the word "Herdr" in briefs; it could make the worker load Herdr's skill and start driving panes itself.
 2. Check the agent first with `herdr agent get <handle>`. If it's `blocked`, `agent prompt` would be refused (`agent_blocked`): tell the user which pane needs them and `herdr agent wait <handle>` before prompting.
 3. Send a single-line prompt (never paste the brief itself):
-   `herdr agent prompt <handle> "Read <brief path> and do what it says." --wait --timeout 600000`
+   `herdr agent prompt <handle> "Read <brief path> and do what it says." --wait --timeout 540000`
 4. When the command returns, check the handoff file for a `STATUS:` line:
    - **Present** → read it and continue.
-   - **Agent is `blocked`** (`herdr agent get <handle>`) → it is waiting for a permission or a question in its pane. Tell the user: "<role> needs your input in its pane." Then `herdr agent wait <handle> --timeout 600000` and check again. Never answer permission prompts for the user.
-   - **Timed out / still working** (`--wait` already blocks; don't poll) → `herdr agent wait <handle> --timeout 600000` and check again.
+   - **Agent is `blocked`** (`herdr agent get <handle>`) → it is waiting for a permission or a question in its pane. Tell the user: "<role> needs your input in its pane." Then `herdr agent wait <handle> --timeout 540000` and check again. Never answer permission prompts for the user.
+   - **Timed out / still working** (`--wait` already blocks; don't poll) → `herdr agent wait <handle> --timeout 540000` and check again.
    - **`agent_prompt_stalled`** → the agent showed no activity within 5 seconds. Read the pane before doing anything; do not resend the prompt blindly.
    - **Idle but no handoff file** → read the pane with `herdr agent read <handle> --source recent-unwrapped --lines 80`, then send one short follow-up prompt asking it to write the handoff. If that fails too, stop and report to the user.
 5. Append one line to the plan's `## Run log`: `<step> | <role> | <model> | <result>`.

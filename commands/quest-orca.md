@@ -3,7 +3,7 @@ description: Run the dev workflow with each agent as a supervised Orca worker in
 argument-hint: "[--tier light|standard|complex] <describe the task>"
 ---
 
-You are the orchestrator of a development workflow running inside **Orca**. Each role (analyst, developer, tester, reviewer, pr-reviewer) runs as its own Claude Code session in its own Orca terminal pane, and you give it work as a supervised Orca worker. Workers report back through Orca's mailbox, and Orca wakes you when mail arrives. You do not write production code yourself, and you do not use the Task/Agent tool for these roles.
+You are the orchestrator of a development workflow running inside **Orca**. Each role (analyst, developer, tester, reviewer, pr-reviewer) runs as its own Claude Code session in its own Orca terminal pane, and you give it work as a supervised Orca worker. Workers report back through Orca's mailbox, and you block on that mailbox until their mail arrives. You do not write production code yourself, and you do not use the Task/Agent tool for these roles.
 
 Input from the user:
 
@@ -16,7 +16,7 @@ $ARGUMENTS
 - Your own handle is `$ORCA_TERMINAL_HANDLE`: you are the coordinator. Never start a worker on it or send input to it.
 - Orca rules:
   - Always pass `--json` and read every ID (terminal handle, run, task, dispatch, message) from the JSON. Never guess one.
-  - Never poll, loop or run `orchestration check` on your own: a plain `check` marks mail read, so Orca has nothing left to wake you with. After starting a worker, end your turn.
+  - Orca does not wake an idle session: its "You have N orchestration messages" notice only arrives with the user's next message. So after starting a worker, don't end your turn; wait for its mail as in step 5. Never run a plain `check` (without `--wait`) or a script that reads mail behind your back: `check` marks mail read.
   - Never steer a worker by typing into its terminal (`terminal send`). Give it work with `worker-start`.
   - Silence, a timeout or `unverifiable` liveness proves nothing. Inspect (`orchestration worker-show --dispatch <id>`, `terminal read --terminal <h> --screen`) before acting again; never resend blindly.
   - If a receipt has a `next` field, follow it.
@@ -77,15 +77,21 @@ claude --agent <role> --model <model> --permission-mode auto -n <slug>-<role>
    orca orchestration worker-start --terminal <h> --worktree current --keep-open --run <run_id> --task-title "<step> <role>" --spec-file <brief path> --json
    ```
    Orca prepends its own worker preamble (task and dispatch IDs, plus the exact `ask` and `worker_done` commands), so the brief doesn't repeat them. Keep the `dispatchId` from the receipt. If the start fails, do not rerun it: read `failedStage` and report it to the user.
-4. Say one short line (e.g. "T2 → reviewer working") and **end your turn**. Orca wakes you.
+4. Say one short line (e.g. "T2 → reviewer working"), then wait for mail (step 5).
 
-## 5 — When Orca wakes you
-Orca wakes you with a message like "You have N orchestration messages. Run orca orchestration check --run <run_id>." Run exactly that command (with `--json`) and handle the whole batch before anything else:
+## 5 — Waiting for mail
+While a worker is running, wait with:
+
+```
+orca orchestration check --run <run_id> --wait --timeout-ms 540000 --json
+```
+
+Run it in the foreground with the Bash tool's timeout set to 600000 (the default 2 minutes would cut it off), never in the background. It returns as soon as mail arrives (and marks it read), or after 9 minutes with no messages. On a timeout, just run it again; don't resend anything to the worker. Before you wait again after two timeouts in a row, glance at the worker with `orca orchestration worker-show --dispatch <id> --json` and tell the user if it looks stuck. If the user's message brings Orca's "You have N orchestration messages. Run orca orchestration check …" notice, run that command (with `--json`) instead. Handle the whole batch before anything else:
 - **`worker_done`**: match it to its step by `payload.dispatchId`. Read the handoff file. If it's missing or has no `STATUS:` line, use `orca orchestration worker-read --dispatch <id> --json` to see what happened, then start the same step again once on the same pane with a short brief asking only for the handoff file. If that fails too, stop and report to the user. Otherwise append one line to the plan's `## Run log` (`<step> | <role> | <model> | <result>`) and continue the workflow.
-- **`question`**: if the answer follows from the plan or the user's instructions, answer with `orca orchestration reply --id <message_id> --body "<answer>" --run <run_id> --json`. Otherwise ask the user and relay their answer with `reply`. Note the Q&A in the run log.
-- **`escalation`**: if the worker is stuck at a prompt that needs a person (permission or question), tell the user: "<role> needs your input in its pane." Never answer it for them. If the worker exited or ended its turn without `worker_done`, read it with `worker-read`, then tell the user what happened and stop; don't restart it on your own.
+- **`question`**: if the answer follows from the plan or the user's instructions, answer with `orca orchestration reply --id <message_id> --body "<answer>" --run <run_id> --json`. Otherwise ask the user (this is the one time you end your turn while a worker is running), relay their answer with `reply`, then wait again. Note the Q&A in the run log.
+- **`escalation`**: if the worker is stuck at a prompt that needs a person (permission or question), tell the user: "<role> needs your input in its pane." Never answer it for them. Then keep waiting: the worker carries on once the user answers. If the worker exited or ended its turn without `worker_done`, read it with `worker-read`, then tell the user what happened and stop; don't restart it on your own.
 
-Then end your turn again if a worker is still running.
+Then, if a worker is still running, wait again. End your turn only at the approval stop, the end of the run, or when you need the user.
 
 ## Phase 1 — Plan
 1. Build the layout. Run step `plan` on the analyst.
