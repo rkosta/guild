@@ -2,6 +2,9 @@
 
 Newest first. The top entry must match `VERSION` and the README title (`pnpm run check` verifies this).
 
+## v3.6.0
+`/quest-orca --headroom`: launches every agent pane through `headroom wrap claude --no-proxy --code-memory none`, reusing the Headroom proxy that is already running (port from `ANTHROPIC_BASE_URL`, `$HEADROOM_PORT` or 8787). The orchestrator checks the proxy's `/health` first and stops if it's down. Off by default; other modes unchanged.
+
 ## v3.5.2
 
 `/quest-orca`: the orchestrator now waits for worker mail with `orchestration check --wait` (9-minute chunks, Bash tool timeout raised to 10 minutes) instead of ending its turn. Orca's "You have N orchestration messages" notice only arrived when the user typed something, so runs stalled until someone asked for a status. `/quest-herdr`: blocking `herdr` calls now run with the Bash tool timeout raised to 10 minutes and wait in 9-minute chunks, so the default 2-minute Bash timeout no longer cuts them off.

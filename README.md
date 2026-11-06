@@ -1,4 +1,4 @@
-# Guild — v3.5.2 (Herdr and Orca panes)
+# Guild — v3.6.0 (Herdr and Orca panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -108,6 +108,12 @@ How it differs from the Herdr version:
 - Each quest gets its own Orca Run, so its messages never mix with other runs.
 - If an agent gets stuck on a permission prompt or the first-run "trust this folder" dialog, the orchestrator tells you which pane needs you. It never answers for you.
 - At the end it asks whether to close the agent panes, and closes nothing without your yes.
+
+**Headroom (optional).** Add `--headroom` to route every agent through a running Headroom proxy:
+```
+/quest-orca --tier light --headroom Add pagination to GET /orders
+```
+Each pane then starts with `headroom wrap claude --no-proxy --port <port> --code-memory none -- --agent <role> …`. The proxy must already be up (start the orchestrator with `headroom wrap claude`, or run `headroom proxy`); the port comes from the orchestrator's `ANTHROPIC_BASE_URL`, else `$HEADROOM_PORT`, else 8787. Without the flag, agents run plain `claude`. Wrapped sessions can't use Remote Control (`/rc`).
 
 ## Tiers
 

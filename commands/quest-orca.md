@@ -1,6 +1,6 @@
 ---
 description: Run the dev workflow with each agent as a supervised Orca worker in its own pane (analyse → approve → develop → test → review → PR review)
-argument-hint: "[--tier light|standard|complex] <describe the task>"
+argument-hint: "[--tier light|standard|complex] [--headroom] <describe the task>"
 ---
 
 You are the orchestrator of a development workflow running inside **Orca**. Each role (analyst, developer, tester, reviewer, pr-reviewer) runs as its own Claude Code session in its own Orca terminal pane, and you give it work as a supervised Orca worker. Workers report back through Orca's mailbox, and you block on that mailbox until their mail arrives. You do not write production code yourself, and you do not use the Task/Agent tool for these roles.
@@ -21,9 +21,12 @@ $ARGUMENTS
   - Silence, a timeout or `unverifiable` liveness proves nothing. Inspect (`orchestration worker-show --dispatch <id>`, `terminal read --terminal <h> --screen`) before acting again; never resend blindly.
   - If a receipt has a `next` field, follow it.
   - Only close terminals this run created, and only when the user says yes.
+- Only with `--headroom` (see step 1): run `headroom --version`; if it fails, stop and say headroom isn't installed. Pick the port: the one in `$ANTHROPIC_BASE_URL` if it is a local address, else `$HEADROOM_PORT`, else `8787`. Check the proxy with `curl -s -m 3 http://127.0.0.1:<port>/health`. If it isn't healthy, stop and tell the user to start one first (`headroom proxy`, or start this session with `headroom wrap claude`). The panes reuse that proxy and never start their own.
 
 ## 1 — Tier and models
 If the input starts with `--tier <name>`, use that tier and strip the flag from the task text. Otherwise use **standard**. If the tier name isn't in the table, stop and ask.
+
+If the input contains `--headroom` before the task text (alone or next to `--tier`), strip it and launch every agent through Headroom (step 3). Without it, agents run plain `claude`.
 
 | Tier | analyst | developer | tester | reviewer | pr-reviewer |
 |---|---|---|---|---|---|
@@ -54,6 +57,12 @@ The agents get their own tab, so they have the full width. Build it once. Every 
 claude --agent <role> --model <model> --permission-mode auto -n <slug>-<role>
 ```
 
+With `--headroom`, prefix it so the agent's API calls go through the proxy checked in step 0:
+
+```
+headroom wrap claude --no-proxy --port <port> --code-memory none -- --agent <role> --model <model> --permission-mode auto -n <slug>-<role>
+```
+
 1. `orca terminal create --title "quest <slug>" --command "<analyst command>" --json` → pane A (analyst)
 2. `orca terminal split --terminal <A> --direction horizontal --command "<tester command>" --json` → pane B (tester, below A)
 3. `orca terminal split --terminal <A> --direction vertical --command "<developer command>" --json` → pane C (developer, right of A)
@@ -66,6 +75,7 @@ claude --agent <role> --model <model> --permission-mode auto -n <slug>-<role>
 - `-n <slug>-<role>` names the session, so the user can find it later with `claude --resume <name>` or `/resume`.
 - If `terminal split` times out, the pane may still open: re-run it with the `--retry-split <leafId>` from the error, never a fresh split.
 - Agents stay alive for the whole run, so the developer keeps context across fix rounds.
+- With `--headroom`, the wrap prints a banner before Claude starts. In step 4, if the screen after the `tui-idle` wait shows the banner but no Claude prompt yet, wait again before the first step. Mention "via Headroom" when you tell the user where the agents are.
 
 ## 4 — Running a step
 1. Before a pane's first step, make sure its agent is ready: `orca terminal wait --terminal <h> --for tui-idle --timeout-ms 120000 --json`, then `orca terminal read --terminal <h> --screen --json`. If the screen shows a dialog (typically "Do you trust the files in this folder?" the first time in a repo), tell the user which pane needs them and end your turn. Continue when they say it's answered. Never answer a dialog yourself.
@@ -110,7 +120,7 @@ Keep your own messages short between steps. The user is watching the panes.
 
 ## Phase 3 — Wrap up
 Report to the user:
-- Tier used and the model each agent ran on (from the run log)
+- Tier used and the model each agent ran on (from the run log), and whether agents ran through Headroom
 - Tasks completed, and files changed
 - Tests added and final test result
 - "Nice to have" items and out-of-scope notes
