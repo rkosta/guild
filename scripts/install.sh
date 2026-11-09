@@ -14,4 +14,13 @@ for dir in agents commands; do
   done
 done
 
+# Agents this repo used to ship and no longer does.
+RETIRED=(agents/tester.md)
+for retired in "${RETIRED[@]}"; do
+  if [ -f "$CLAUDE_DIR/$retired" ]; then
+    rm "$CLAUDE_DIR/$retired"
+    echo "  removed retired $retired"
+  fi
+done
+
 echo "Done. Restart Claude Code and check /agents."

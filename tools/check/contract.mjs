@@ -26,8 +26,14 @@ export function checkContract(root) {
   if (!/\*\*Verdict:\*\*\s*PASS or CHANGES_REQUESTED/.test(reviewer)) {
     fail("agents/reviewer.md", "reply format must contain '**Verdict:** PASS or CHANGES_REQUESTED'");
   }
+  // The developer writes the tests (test-first); the orchestrators report its test fields.
+  const developer = read(root, "agents/developer.md");
+  for (const field of ["**Tests:**", "**Red:**", "**Test result:**"]) {
+    if (!developer.includes(field)) fail("agents/developer.md", `reply format must contain '${field}' (the developer owns the tests)`);
+  }
   for (const file of ["commands/quest.md", "commands/quest-herdr.md", "commands/quest-orca.md"]) {
     const text = read(root, file);
+    if (/\btester\b/i.test(text)) fail(file, "there is no tester agent; the developer writes the tests");
     if (!/CHANGES_REQUESTED/.test(text) || !/\bPASS\b/.test(text)) fail(file, "must handle both PASS and CHANGES_REQUESTED verdicts");
   }
 

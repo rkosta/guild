@@ -2,6 +2,9 @@
 
 Newest first. The top entry must match `VERSION` and the README title (`pnpm run check` verifies this).
 
+## v4.0.0
+The tester agent is gone. The developer now works test-first: for each acceptance criterion it writes a failing test, watches it fail, then writes the code, and it reports its tests, the red evidence and the full-suite result in three new reply fields (`Tests`, `Red`, `Test result`). `Red` lists the first failure line each new test showed before the code existed. Review fixes for bugs start with a failing test. The reviewer also checks that each covered criterion has a behavior test, that no test was weakened to get green, and that every `Red` line matches its test's assertion. A test that would still pass with the production change removed, or a missing or generic `Red` line, is a must-fix. Each task now takes two agent runs instead of three, and so does each fix round. The tier table drops the tester column, so `complex` is all opus. In Herdr and Orca mode the grid is analyst and developer on the left, reviewer and pr-reviewer on the right. Step names lose `-test`. `install.sh` removes the old `~/.claude/agents/tester.md`. Breaking: plans and briefs from earlier runs that mention the tester won't resume as they were.
+
 ## v3.7.0
 Analyst plans fewer, bigger tasks. Each task is now a vertical slice (one behavior end to end) that can be built, tested and reviewed on its own, instead of a sliver capped at ~5 files. Setup and plumbing get folded into the first task that needs them, and the analyst merges tasks when it has more than 8 (most requests need 1–6). Each task now lists `Blocked by:`, groundwork for running independent tasks in parallel. Prompted by a 16-task brochure-site plan that meant ~48 sequential agent runs.
 

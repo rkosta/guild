@@ -49,14 +49,14 @@ test("frontmatter: unquoted argument-hint is rejected", () => {
 
 test("frontmatter: agent model must be inherit", () => {
   const errors = errorsFor(checkFrontmatter, (edit) =>
-    edit("agents/tester.md", (t) => t.replace("model: inherit", "model: sonnet")),
+    edit("agents/developer.md", (t) => t.replace("model: inherit", "model: sonnet")),
   );
-  assert.match(errors.join("\n"), /agents\/tester\.md: model must be "inherit"/);
+  assert.match(errors.join("\n"), /agents\/developer\.md: model must be "inherit"/);
 });
 
 test("frontmatter: agent name must match file name", () => {
   const errors = errorsFor(checkFrontmatter, (edit) =>
-    edit("agents/tester.md", (t) => t.replace("name: tester", "name: testr")),
+    edit("agents/developer.md", (t) => t.replace("name: developer", "name: dev")),
   );
   assert.match(errors.join("\n"), /name must equal the file name/);
 });
@@ -84,7 +84,7 @@ test("frontmatter: missing block is reported", () => {
 
 test("drift: tier table out of sync in one file", () => {
   const errors = errorsFor(checkDrift, (edit) =>
-    edit("README.md", (t) => t.replace("| standard | opus | sonnet | sonnet | opus |", "| standard | opus | opus | sonnet | opus |")),
+    edit("README.md", (t) => t.replace("| standard | opus | sonnet | opus | opus |", "| standard | opus | opus | opus | opus |")),
   );
   assert.match(errors.join("\n"), /README\.md: tier table differs/);
 });
@@ -106,9 +106,9 @@ test("drift: README version must match VERSION", () => {
 
 test("drift: layout must list every real file", () => {
   const errors = errorsFor(checkDrift, (edit) =>
-    edit("CLAUDE.md", (t) => t.replace(/^\s+tester\.md.*\n/m, "")),
+    edit("CLAUDE.md", (t) => t.replace(/^\s+developer\.md.*\n/m, "")),
   );
-  assert.match(errors.join("\n"), /layout is missing tester\.md/);
+  assert.match(errors.join("\n"), /layout is missing developer\.md/);
 });
 
 test("contract: agent file must keep the Reply format section", () => {
@@ -125,6 +125,27 @@ test("contract: analyst must keep the plan structure", () => {
   assert.match(errors.join("\n"), /agents\/analyst\.md: missing '## Run log'/);
 });
 
+test("contract: developer must report its tests", () => {
+  const errors = errorsFor(checkContract, (edit) =>
+    edit("agents/developer.md", (t) => t.replace("**Test result:**", "**Result:**")),
+  );
+  assert.match(errors.join("\n"), /developer\.md: reply format must contain '\*\*Test result:\*\*'/);
+});
+
+test("contract: developer must show red evidence", () => {
+  const errors = errorsFor(checkContract, (edit) =>
+    edit("agents/developer.md", (t) => t.replace("**Red:**", "**Failing:**")),
+  );
+  assert.match(errors.join("\n"), /developer\.md: reply format must contain '\*\*Red:\*\*'/);
+});
+
+test("contract: orchestrators must not brief a tester", () => {
+  const errors = errorsFor(checkContract, (edit) =>
+    edit("commands/quest.md", (t) => t + "\n2. Run the **tester** subagent.\n"),
+  );
+  assert.match(errors.join("\n"), /quest\.md: there is no tester agent/);
+});
+
 test("contract: reviewer verdict wording is enforced", () => {
   const errors = errorsFor(checkContract, (edit) =>
     edit("agents/reviewer.md", (t) => t.replace("PASS or CHANGES_REQUESTED", "OK or NOT_OK")),
@@ -134,7 +155,7 @@ test("contract: reviewer verdict wording is enforced", () => {
 
 test("contract: agents must not mention Herdr or STATUS lines", () => {
   const errors = errorsFor(checkContract, (edit) =>
-    edit("agents/tester.md", (t) => t + "\nWrite to the Herdr pane.\nSTATUS: complete\n"),
+    edit("agents/developer.md", (t) => t + "\nWrite to the Herdr pane.\nSTATUS: complete\n"),
   );
   assert.match(errors.join("\n"), /must not mention Herdr/);
   assert.match(errors.join("\n"), /STATUS lines belong/);
@@ -156,7 +177,7 @@ test("contract: agents must not mention Orca", () => {
 
 test("drift: quest-orca tier table must match", () => {
   const errors = errorsFor(checkDrift, (edit) =>
-    edit("commands/quest-orca.md", (t) => t.replace("| complex | opus | opus | sonnet | opus |", "| complex | opus | sonnet | sonnet | opus |")),
+    edit("commands/quest-orca.md", (t) => t.replace("| complex | opus | opus | opus | opus |", "| complex | opus | sonnet | opus | opus |")),
   );
   assert.match(errors.join("\n"), /commands\/quest-orca\.md: tier table differs/);
 });

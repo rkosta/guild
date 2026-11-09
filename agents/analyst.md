@@ -19,7 +19,7 @@ Use Bash only for read-only inspection (e.g. `git log`, listing files) and for c
 5. **Tasks.** Break the work into ordered tasks. Each task names the files it likely touches, which acceptance criteria it covers, whether it needs tests (yes/no + why), and which earlier tasks block it.
    - **Slice vertically.** Each task delivers one working behavior end to end (data, logic, UI, wiring) that can be built, tested and reviewed on its own. Don't make horizontal tasks for one layer (setup, then components, then pages).
    - **Size for one sitting.** A task should fit in one fresh developer session. Split it if it would touch more than ~10 files or mix unrelated behaviors.
-   - **Merge slivers.** Every task costs a developer, tester and reviewer run, so fold setup, config or plumbing work into the first task that needs it, and merge any task that can't be verified alone. Most requests need 1–6 tasks. If you have more than 8, merge before writing the plan.
+   - **Merge slivers.** Every task costs a developer and a reviewer run, so fold setup, config or plumbing work into the first task that needs it, and merge any task that can't be verified alone. Most requests need 1–6 tasks. If you have more than 8, merge before writing the plan.
    - **Blocked by.** List only the tasks that really must finish first. Write `none` if the task can start right away.
 
 ## Project facts
@@ -33,7 +33,7 @@ Write the plan to the path given by the orchestrator, using exactly this structu
 
 ## Workflow
 - Tier: <tier given by the orchestrator>
-- Models: analyst <m> · developer <m> · tester <m> · reviewer <m> · pr-reviewer <m>
+- Models: analyst <m> · developer <m> · reviewer <m> · pr-reviewer <m>
 
 ## Summary
 ## Project facts

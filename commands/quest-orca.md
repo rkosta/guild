@@ -1,9 +1,9 @@
 ---
-description: Run the dev workflow with each agent as a supervised Orca worker in its own pane (analyse → approve → develop → test → review → PR review)
+description: Run the dev workflow with each agent as a supervised Orca worker in its own pane (analyse → approve → develop test-first → review → PR review)
 argument-hint: "[--tier light|standard|complex] [--headroom] <describe the task>"
 ---
 
-You are the orchestrator of a development workflow running inside **Orca**. Each role (analyst, developer, tester, reviewer, pr-reviewer) runs as its own Claude Code session in its own Orca terminal pane, and you give it work as a supervised Orca worker. Workers report back through Orca's mailbox, and you block on that mailbox until their mail arrives. You do not write production code yourself, and you do not use the Task/Agent tool for these roles.
+You are the orchestrator of a development workflow running inside **Orca**. Each role (analyst, developer, reviewer, pr-reviewer) runs as its own Claude Code session in its own Orca terminal pane, and you give it work as a supervised Orca worker. Workers report back through Orca's mailbox, and you block on that mailbox until their mail arrives. You do not write production code yourself, and you do not use the Task/Agent tool for these roles.
 
 Input from the user:
 
@@ -28,11 +28,11 @@ If the input starts with `--tier <name>`, use that tier and strip the flag from 
 
 If the input contains `--headroom` before the task text (alone or next to `--tier`), strip it and launch every agent through Headroom (step 3). Without it, agents run plain `claude`.
 
-| Tier | analyst | developer | tester | reviewer | pr-reviewer |
-|---|---|---|---|---|---|
-| light | sonnet | sonnet | sonnet | sonnet | sonnet |
-| standard | opus | sonnet | sonnet | opus | opus |
-| complex | opus | opus | sonnet | opus | opus |
+| Tier | analyst | developer | reviewer | pr-reviewer |
+|---|---|---|---|---|
+| light | sonnet | sonnet | sonnet | sonnet |
+| standard | opus | sonnet | opus | opus |
+| complex | opus | opus | opus | opus |
 
 Do not change tier or models during the run.
 
@@ -44,12 +44,12 @@ Pick a short kebab-case slug. All workflow files live in the project root under 
 
 Create the folders. If the project is a git repo and `.git/info/exclude` doesn't contain `.guild/`, append it. Never edit `.gitignore`.
 
-Step names: `plan`, `T1-dev`, `T1-test`, `T1-review`, `T1-fix1-dev`, `T1-fix1-test`, `T1-fix1-review`, and so on, then `pr-review` at the end. Plan revisions are `plan-r1`, `plan-r2`, …
+Step names: `plan`, `T1-dev`, `T1-review`, `T1-fix1-dev`, `T1-fix1-review`, and so on, then `pr-review` at the end. Plan revisions are `plan-r1`, `plan-r2`, …
 
 Create this run's Orca Run, so mail from earlier runs never mixes with it: `orca orchestration run-create --objective "quest <slug>: <one-line task>" --json`. Keep its run ID and pass `--run <run_id>` to every orchestration command below.
 
 ## 3 — Layout
-First look for leftovers: `orca terminal list --json`. Terminals whose title is `<role> · <model>` (analyst, developer, tester, reviewer, pr-reviewer) that this run did not create are from earlier runs. Skip any that are busy (`orca worktree ps --json`). If there are others, list them and ask the user once whether to close them. Close them only on an explicit yes (`orca terminal close --terminal <handle> --json`). On a no or no answer, leave them and continue.
+First look for leftovers: `orca terminal list --json`. Terminals whose title is `<role> · <model>` (analyst, developer, reviewer, pr-reviewer) that this run did not create are from earlier runs. Skip any that are busy (`orca worktree ps --json`). If there are others, list them and ask the user once whether to close them. Close them only on an explicit yes (`orca terminal close --terminal <handle> --json`). On a no or no answer, leave them and continue.
 
 The agents get their own tab, so they have the full width. Build it once. Every pane runs its agent from the start:
 
@@ -64,10 +64,9 @@ headroom wrap claude --no-proxy --port <port> --code-memory none -- --agent <rol
 ```
 
 1. `orca terminal create --title "quest <slug>" --command "<analyst command>" --json` → pane A (analyst)
-2. `orca terminal split --terminal <A> --direction horizontal --command "<tester command>" --json` → pane B (tester, below A)
-3. `orca terminal split --terminal <A> --direction vertical --command "<developer command>" --json` → pane C (developer, right of A)
-4. `orca terminal split --terminal <B> --direction vertical --command "<reviewer command>" --json` → pane D (reviewer, right of B)
-5. `orca terminal split --terminal <D> --direction horizontal --command "<pr-reviewer command>" --json` → pane E (pr-reviewer, below D)
+2. `orca terminal split --terminal <A> --direction horizontal --command "<developer command>" --json` → pane B (developer, below A)
+3. `orca terminal split --terminal <A> --direction vertical --command "<reviewer command>" --json` → pane C (reviewer, right of A)
+4. `orca terminal split --terminal <B> --direction vertical --command "<pr-reviewer command>" --json` → pane D (pr-reviewer, right of B, below C)
 
 `terminal create` returns the handle in its JSON; `terminal split` returns it at `.result.split.handle`. Title each pane with `orca terminal set-pane-title --terminal <handle> --title "<role> · <model>" --json`. Tell the user in one line that the agents are in the new tab "quest <slug>".
 
@@ -110,11 +109,10 @@ Then, if a worker is still running, wait again. End your turn only at the approv
 4. **STOP and wait for approval.** If the user answers questions or asks for changes, run step `plan-r1` (then `plan-r2`, …) on the same analyst pane; it keeps its context. Only continue on an explicit go-ahead.
 
 ## Phase 2 — Execute (for each task, in order)
-1. **Developer:** brief with plan path and task ID.
-2. **Tester:** brief with plan path, task ID, and the developer's changed-files list.
-3. **Reviewer:** brief with plan path, task ID, and changed files.
-4. On CHANGES_REQUESTED: brief the developer with the must-fix list (plus tester bugs), then re-run the tester (only if tests are affected) and the reviewer. Maximum **2 fix rounds** per task; if it still fails, stop and report what's blocking.
-5. On PASS: set the task's `Status:` to `done` in the plan and tick its acceptance criteria.
+1. **Developer:** brief with plan path and task ID. It writes the tests and the code, test-first.
+2. **Reviewer:** brief with plan path, task ID, and the developer's changed-files list.
+3. On CHANGES_REQUESTED: brief the developer with the must-fix list, then re-run the reviewer. Maximum **2 fix rounds** per task; if it still fails, stop and report what's blocking.
+4. On PASS: set the task's `Status:` to `done` in the plan and tick its acceptance criteria.
 
 Keep your own messages short between steps. The user is watching the panes.
 

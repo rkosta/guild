@@ -7,8 +7,7 @@ This repo is the **source** of a personal multi-agent development workflow for C
 ```
 agents/              subagent definitions → installed to ~/.claude/agents/
   analyst.md         request → plan.md (requirements, acceptance criteria, tasks)
-  developer.md       implements one task at a time, applies review fixes
-  tester.md          writes + runs tests after each task (test files only)
+  developer.md       implements one task at a time test-first (tests + code), applies review fixes
   reviewer.md        verifies against acceptance criteria; never edits code
   pr-reviewer.md     runs pr-review-toolkit:review-pr at the end; returns its output, never fixes
 commands/            slash commands → installed to ~/.claude/commands/
@@ -29,13 +28,13 @@ VERSION              current version, single source of truth
 
 1. `/quest`, `/quest-herdr` or `/quest-orca` receives a task (optionally `--tier light|standard|complex`, default `standard`).
 2. **analyst** writes `.guild/<slug>/plan.md` in the target project → orchestrator **stops for user approval**.
-3. Per task: **developer** → **tester** → **reviewer**. On CHANGES_REQUESTED, back to developer, max **2 fix rounds**, then escalate to the user.
+3. Per task: **developer** (test-first) → **reviewer**. On CHANGES_REQUESTED, back to developer, max **2 fix rounds**, then escalate to the user.
 4. Orchestrator logs every agent run in the plan's `## Run log` and gives a summary (tier, models, files, tests, leftovers).
 5. If every task passed, **pr-reviewer** runs once and the orchestrator shows the user its output unchanged. Nothing acts on it.
 
 ### Three orchestrator modes, one set of agents
 - **Subagent mode** (`quest.md`): agents run as subagents in one session; the model is passed per launch.
-- **Herdr mode** (`quest-herdr.md`): each agent is a separate `claude --agent <role> --model <m>` session in its own Herdr pane (2×2 grid right of the orchestrator, pr-reviewer under reviewer). Control via the `herdr` CLI (`agent start`, `agent prompt --wait`, `agent wait`, `agent get`). Content via files: orchestrator writes `briefs/<step>-<role>.md`, agent writes `handoffs/<step>-<role>.md` ending with `STATUS: complete|blocked — reason`. Agents never talk to each other directly; the orchestrator relays.
+- **Herdr mode** (`quest-herdr.md`): each agent is a separate `claude --agent <role> --model <m>` session in its own Herdr pane (2×2 grid right of the orchestrator: analyst and developer on the left, reviewer and pr-reviewer on the right). Control via the `herdr` CLI (`agent start`, `agent prompt --wait`, `agent wait`, `agent get`). Content via files: orchestrator writes `briefs/<step>-<role>.md`, agent writes `handoffs/<step>-<role>.md` ending with `STATUS: complete|blocked — reason`. Agents never talk to each other directly; the orchestrator relays.
 - **Orca mode** (`quest-orca.md`): each agent is a `claude --agent <role> --model <m>` session in its own pane of a new Orca tab "quest <slug>" (same 2×2 grid, pr-reviewer under reviewer), started with `orca terminal create/split --command`. Each step is a supervised Orca worker task: `orca orchestration worker-start --terminal <h> --keep-open --run <run> --spec-file briefs/<step>-<role>.md`. Orca injects its own worker preamble (`ask`, `worker_done`), the agent writes the same handoff file with a `STATUS:` line and sends `worker_done --report-path <handoff>`, and the orchestrator blocks on `orchestration check --wait` until the mail arrives (Orca does not wake an idle session; its notice only rides along with the user's next message). Workers can `ask` the orchestrator mid-task; it answers from the plan or relays to the user.
 
 ## Decisions already made (don't undo without asking)
@@ -43,16 +42,16 @@ VERSION              current version, single source of truth
 - **Build/test commands are auto-detected** from the target project (package.json, *.csproj/*.sln, pyproject.toml, Makefile, go.mod…). CLAUDE.md in the target is optional.
 - **Plans live in the target repo** under `.guild/`, git-ignored via `.git/info/exclude`. Never edit the target's `.gitignore` or any lint/format ignore config; agents ignore findings inside `.guild/` instead, and run formatters in write mode only on files they changed.
 - **Approval checkpoint only after the plan.** No per-task approvals.
-- **Tests are written after implementation**, not TDD. Tester reuses the existing framework, never adds a new one, never edits production code.
+- **Developer works test-first** (red → green per acceptance criterion) and owns both tests and code; there is no separate tester (dropped in v4.0 to cut one agent run per task). It reuses the existing test framework, never adds a new one, and never weakens a test to get green. Its reply carries a `Red:` line per new test (the failure it showed before the code existed), and the reviewer treats a missing or implausible one, or a test that would pass without the change, as must-fix.
 - **Reviewer is read-only on code.** It has `Write` only so it can save its handoff file in Herdr and Orca mode.
 - **PR reviewer only reports.** It runs `pr-review-toolkit:review-pr` with every aspect except `simplify` (the simplifier edits code), and the orchestrator returns the output unchanged. It needs `Skill` and `Agent` because the skill launches review agents, and `Write` only for its handoff file.
 - **Tiers are chosen by the user**, never by the analyst. No haiku in any tier.
 
-  | Tier | analyst | developer | tester | reviewer | pr-reviewer |
-  |---|---|---|---|---|---|
-  | light | sonnet | sonnet | sonnet | sonnet | sonnet |
-  | standard | opus | sonnet | sonnet | opus | opus |
-  | complex | opus | opus | sonnet | opus | opus |
+  | Tier | analyst | developer | reviewer | pr-reviewer |
+  |---|---|---|---|---|
+  | light | sonnet | sonnet | sonnet | sonnet |
+  | standard | opus | sonnet | opus | opus |
+  | complex | opus | opus | opus | opus |
 
 - Agent files keep `model: inherit`; the orchestrator always passes the model explicitly.
 - **Herdr mode uses brief/handoff files from the first prompt.** Herdr's own skill says to ask for file output only as a fallback; we deviate on purpose because handoffs are the workflow's record and its completion signal (`STATUS:` line). Everything else in `quest-herdr.md` follows the skill's rules (no bare `herdr`, IDs from JSON, `--no-focus`, inspect before resending, don't answer dialogs). Briefs must not mention "Herdr", so workers don't load the skill.
