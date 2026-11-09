@@ -48,5 +48,15 @@ export function checkDrift(root) {
     }
   }
 
+  // install.sh deletes RETIRED agents after copying; one that still ships would be deleted on every install.
+  const retired = read(root, "scripts/install.sh").match(/^RETIRED=\(([^)]*)\)/m)?.[1];
+  if (retired === undefined) {
+    errors.push("scripts/install.sh: could not find the RETIRED=(...) list");
+  } else {
+    for (const f of retired.split(/\s+/).filter(Boolean)) {
+      if (existsSync(join(root, f))) errors.push(`scripts/install.sh: ${f} is listed as retired but still ships`);
+    }
+  }
+
   return errors;
 }

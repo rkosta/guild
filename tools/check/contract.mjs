@@ -13,6 +13,10 @@ export function checkContract(root) {
       for (const heading of ["## Output", "## Run log", "## Tasks", "## Acceptance criteria"]) {
         if (!new RegExp(`^${heading}\\s*$`, "m").test(text)) fail(path, `missing '${heading}' (the orchestrator relies on the plan structure)`);
       }
+      // Task fields other agents read: developer (Tests needed), orchestrators (Status), later parallel runs (Blocked by).
+      for (const field of ["- Tests needed:", "- Blocked by:", "- Status: todo"]) {
+        if (!text.includes(field)) fail(path, `plan template must keep the task field '${field}'`);
+      }
     } else if (!/^## Reply format\s*$/m.test(text)) {
       fail(path, "missing '## Reply format' section");
     }
@@ -31,8 +35,14 @@ export function checkContract(root) {
   for (const field of ["**Tests:**", "**Red:**", "**Test result:**"]) {
     if (!developer.includes(field)) fail("agents/developer.md", `reply format must contain '${field}' (the developer owns the tests)`);
   }
+  // Re-reviews: orchestrators brief them, the reviewer knows how to scope one.
+  if (!/^## Re-reviews\s*$/m.test(reviewer)) fail("agents/reviewer.md", "missing '## Re-reviews' (orchestrators brief fix rounds as re-reviews)");
+
   for (const file of ["commands/quest.md", "commands/quest-herdr.md", "commands/quest-orca.md"]) {
     const text = read(root, file);
+    if (!/\*\*re-review\*\*/.test(text)) fail(file, "fix loop must re-run the reviewer as a **re-review**");
+    if (!text.includes("<HH:MM>–<HH:MM> (<n>m)")) fail(file, "run log lines must carry '<HH:MM>–<HH:MM> (<n>m)' timing");
+    if (!text.includes("agent runs (developer + reviewer each)")) fail(file, "approval must show the agent-run estimate");
     if (/\btester\b/i.test(text)) fail(file, "there is no tester agent; the developer writes the tests");
     if (!/CHANGES_REQUESTED/.test(text) || !/\bPASS\b/.test(text)) fail(file, "must handle both PASS and CHANGES_REQUESTED verdicts");
   }

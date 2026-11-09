@@ -1,4 +1,4 @@
-# Guild — v4.0.0 (Herdr and Orca panes)
+# Guild — v4.1.0 (Herdr and Orca panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -129,7 +129,7 @@ The tier sets which model each agent runs on. Default is **standard**.
 /quest-herdr --tier complex Replace the auth middleware with JWT validation
 ```
 
-The table lives in each command file (`quest.md`, `quest-herdr.md`, `quest-orca.md`). The plan records the tier and models under `## Workflow`, every agent run is logged under `## Run log`, and the final summary repeats both. In the Herdr and Orca versions each pane is also labelled `<role> · <model>`.
+The table lives in each command file (`quest.md`, `quest-herdr.md`, `quest-orca.md`). The plan records the tier and models under `## Workflow`, every agent run is logged under `## Run log` with its start/end time and minutes, and the final summary repeats both plus the total wall-clock time and minutes per role. At approval the orchestrator also shows roughly how many agent runs the plan means. In the Herdr and Orca versions each pane is also labelled `<role> · <model>`.
 
 ## Flow
 
@@ -140,7 +140,7 @@ analyst ──► plan.md ──► YOU APPROVE
             ▼   (per task)
         developer (test-first) ──► reviewer
             ▲                          │
-            └──── CHANGES_REQUESTED ───┘  (max 2 rounds, then escalate to you)
+            └──── CHANGES_REQUESTED ───┘  (max 2 rounds, then escalate to you; re-reviews check only the must-fix items)
                                     │ PASS
                                     ▼
                                next task → summary → pr-reviewer → its output, unchanged, to you

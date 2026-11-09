@@ -81,7 +81,7 @@ headroom wrap claude --no-proxy --port <port> --code-memory none -- --agent <rol
 2. Write the brief file. Every brief contains: the plan path, the step and task ID, everything the agent needs (e.g. changed files, the reviewer's must-fix list), and this ending:
    > Do not open, control or prompt other terminals, panes or agents; the coordinator handles everything.
    > When finished, write your full reply (in your role's reply format) to `<handoff path>`, ending with a final line `STATUS: complete`, or `STATUS: blocked — <reason>` if you could not finish. Then send worker_done with `--report-path <handoff path>`, using `--outcome failed` if the status is blocked. If you need a decision you can't make from the plan, ask the coordinator instead of guessing.
-3. Start the step:
+3. Note the start time (`date +%H:%M`), then start the step:
    ```
    orca orchestration worker-start --terminal <h> --worktree current --keep-open --run <run_id> --task-title "<step> <role>" --spec-file <brief path> --json
    ```
@@ -96,7 +96,7 @@ orca orchestration check --run <run_id> --wait --timeout-ms 540000 --json
 ```
 
 Run it in the foreground with the Bash tool's timeout set to 600000 (the default 2 minutes would cut it off), never in the background. It returns as soon as mail arrives (and marks it read), or after 9 minutes with no messages. On a timeout, just run it again; don't resend anything to the worker. Before you wait again after two timeouts in a row, glance at the worker with `orca orchestration worker-show --dispatch <id> --json` and tell the user if it looks stuck. If the user's message brings Orca's "You have N orchestration messages. Run orca orchestration check …" notice, run that command (with `--json`) instead. Handle the whole batch before anything else:
-- **`worker_done`**: match it to its step by `payload.dispatchId`. Read the handoff file. If it's missing or has no `STATUS:` line, use `orca orchestration worker-read --dispatch <id> --json` to see what happened, then start the same step again once on the same pane with a short brief asking only for the handoff file. If that fails too, stop and report to the user. Otherwise append one line to the plan's `## Run log` (`<step> | <role> | <model> | <result>`) and continue the workflow.
+- **`worker_done`**: match it to its step by `payload.dispatchId`. Read the handoff file. If it's missing or has no `STATUS:` line, use `orca orchestration worker-read --dispatch <id> --json` to see what happened, then start the same step again once on the same pane with a short brief asking only for the handoff file. If that fails too, stop and report to the user. Otherwise append one line to the plan's `## Run log` (`<step> | <role> | <model> | <HH:MM>–<HH:MM> (<n>m) | <result>`, start = the time you noted at `worker-start`, end = `date +%H:%M` now) and continue the workflow.
 - **`question`**: if the answer follows from the plan or the user's instructions, answer with `orca orchestration reply --id <message_id> --body "<answer>" --run <run_id> --json`. Otherwise ask the user (this is the one time you end your turn while a worker is running), relay their answer with `reply`, then wait again. Note the Q&A in the run log.
 - **`escalation`**: if the worker is stuck at a prompt that needs a person (permission or question), tell the user: "<role> needs your input in its pane." Never answer it for them. Then keep waiting: the worker carries on once the user answers. If the worker exited or ended its turn without `worker_done`, read it with `worker-read`, then tell the user what happened and stop; don't restart it on your own.
 
@@ -105,13 +105,13 @@ Then, if a worker is still running, wait again. End your turn only at the approv
 ## Phase 1 — Plan
 1. Build the layout. Run step `plan` on the analyst.
 2. Brief: the task text, the plan path, the tier and models. Ask it to write the plan, including the `## Workflow` section with tier and models.
-3. When it reports, show the user: tier and models, summary, acceptance criteria, task list, open questions. Mention they can read the full plan at `.guild/<slug>/plan.md`.
+3. When it reports, show the user: tier and models, summary, acceptance criteria, task list, open questions. Mention they can read the full plan at `.guild/<slug>/plan.md`. Under the task list, add one line: "<N> tasks → about <2N> agent runs (developer + reviewer each), plus fix rounds and one PR review."
 4. **STOP and wait for approval.** If the user answers questions or asks for changes, run step `plan-r1` (then `plan-r2`, …) on the same analyst pane; it keeps its context. Only continue on an explicit go-ahead.
 
 ## Phase 2 — Execute (for each task, in order)
 1. **Developer:** brief with plan path and task ID. It writes the tests and the code, test-first.
 2. **Reviewer:** brief with plan path, task ID, and the developer's changed-files list.
-3. On CHANGES_REQUESTED: brief the developer with the must-fix list, then re-run the reviewer. Maximum **2 fix rounds** per task; if it still fails, stop and report what's blocking.
+3. On CHANGES_REQUESTED: brief the developer with the must-fix list, then re-run the reviewer as a **re-review**: brief it with the previous must-fix list and the developer's fix reply. Maximum **2 fix rounds** per task; if it still fails, stop and report what's blocking.
 4. On PASS: set the task's `Status:` to `done` in the plan and tick its acceptance criteria.
 
 Keep your own messages short between steps. The user is watching the panes.
@@ -119,6 +119,7 @@ Keep your own messages short between steps. The user is watching the panes.
 ## Phase 3 — Wrap up
 Report to the user:
 - Tier used and the model each agent ran on (from the run log), and whether agents ran through Headroom
+- Time: total wall-clock from the plan step to the end, and minutes per role (summed from the run log)
 - Tasks completed, and files changed
 - Tests added and final test result
 - "Nice to have" items and out-of-scope notes

@@ -53,7 +53,7 @@ Write the plan to the path given by the orchestrator, using exactly this structu
 - Status: todo
 
 ## Run log
-<!-- filled in by the orchestrator: T<n> | agent | model | result -->
+<!-- filled in by the orchestrator: step | agent | model | HH:MM–HH:MM (mins) | result -->
 ```
 
 Then reply with a short summary, the number of tasks, and the open questions.

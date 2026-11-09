@@ -83,18 +83,18 @@ herdr agent start <slug>-<role> --kind claude --pane <pane_id> --timeout 60000 -
    - **Timed out / still working** (`--wait` already blocks; don't poll) → `herdr agent wait <handle> --timeout 540000` and check again.
    - **`agent_prompt_stalled`** → the agent showed no activity within 5 seconds. Read the pane before doing anything; do not resend the prompt blindly.
    - **Idle but no handoff file** → read the pane with `herdr agent read <handle> --source recent-unwrapped --lines 80`, then send one short follow-up prompt asking it to write the handoff. If that fails too, stop and report to the user.
-5. Append one line to the plan's `## Run log`: `<step> | <role> | <model> | <result>`.
+5. Append one line to the plan's `## Run log`: `<step> | <role> | <model> | <HH:MM>–<HH:MM> (<n>m) | <result>`. Take the start time with `date +%H:%M` just before step 3 and the end time when the handoff is in.
 
 ## Phase 1 — Plan
 1. Build the layout. Start the analyst.
 2. Brief: the task text, the plan path, the tier and models. Ask it to write the plan, including the `## Workflow` section with tier and models.
-3. Show the user: tier and models, summary, acceptance criteria, task list, open questions. Mention they can read the full plan at `.guild/<slug>/plan.md`.
+3. Show the user: tier and models, summary, acceptance criteria, task list, open questions. Mention they can read the full plan at `.guild/<slug>/plan.md`. Under the task list, add one line: "<N> tasks → about <2N> agent runs (developer + reviewer each), plus fix rounds and one PR review."
 4. **STOP and wait for approval.** If the user answers questions or asks for changes, brief the analyst again (it keeps its context). Only continue on an explicit go-ahead.
 
 ## Phase 2 — Execute (for each task, in order)
 1. **Developer:** brief with plan path and task ID. It writes the tests and the code, test-first.
 2. **Reviewer:** brief with plan path, task ID, and the developer's changed-files list.
-3. On CHANGES_REQUESTED: brief the developer with the must-fix list, then re-run the reviewer. Maximum **2 fix rounds** per task; if it still fails, stop and report what's blocking.
+3. On CHANGES_REQUESTED: brief the developer with the must-fix list, then re-run the reviewer as a **re-review**: brief it with the previous must-fix list and the developer's fix reply. Maximum **2 fix rounds** per task; if it still fails, stop and report what's blocking.
 4. On PASS: set the task's `Status:` to `done` in the plan and tick its acceptance criteria.
 
 Keep your own messages short between steps, e.g. "T2 → reviewer working". The user is watching the panes.
@@ -102,6 +102,7 @@ Keep your own messages short between steps, e.g. "T2 → reviewer working". The 
 ## Phase 3 — Wrap up
 Report to the user:
 - Tier used and the model each agent ran on (from the run log)
+- Time: total wall-clock from the plan step to the end, and minutes per role (summed from the run log)
 - Tasks completed, and files changed
 - Tests added and final test result
 - "Nice to have" items and out-of-scope notes

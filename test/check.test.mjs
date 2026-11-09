@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -195,4 +196,57 @@ test("contract: briefs in quest-orca must not say Orca", () => {
     edit("commands/quest-orca.md", (t) => t + "\n> Use the orca CLI to read other panes.\n"),
   );
   assert.match(errors.join("\n"), /brief text must not mention Orca/);
+});
+
+test("contract: analyst plan template keeps the task fields", () => {
+  const errors = errorsFor(checkContract, (edit) =>
+    edit("agents/analyst.md", (t) => t.replace("- Blocked by:", "- Depends on:")),
+  );
+  assert.match(errors.join("\n"), /analyst\.md: plan template must keep the task field '- Blocked by:'/);
+});
+
+test("contract: reviewer must keep the Re-reviews section", () => {
+  const errors = errorsFor(checkContract, (edit) =>
+    edit("agents/reviewer.md", (t) => t.replace("## Re-reviews", "## Second pass")),
+  );
+  assert.match(errors.join("\n"), /reviewer\.md: missing '## Re-reviews'/);
+});
+
+test("contract: each orchestrator keeps re-review, run timing and the run estimate", () => {
+  const errors = errorsFor(checkContract, (edit) =>
+    edit("commands/quest-herdr.md", (t) =>
+      t.replace("**re-review**", "full review").replaceAll("<HH:MM>–<HH:MM> (<n>m)", "<time>").replace("agent runs (developer + reviewer each)", "runs"),
+    ),
+  );
+  const out = errors.join("\n");
+  assert.match(out, /quest-herdr\.md: fix loop must re-run the reviewer as a \*\*re-review\*\*/);
+  assert.match(out, /quest-herdr\.md: run log lines must carry/);
+  assert.match(out, /quest-herdr\.md: approval must show the agent-run estimate/);
+});
+
+test("drift: a retired agent must not still ship", () => {
+  const errors = errorsFor(checkDrift, (edit) =>
+    edit("scripts/install.sh", (t) => t.replace("RETIRED=(agents/tester.md)", "RETIRED=(agents/tester.md agents/developer.md)")),
+  );
+  assert.match(errors.join("\n"), /agents\/developer\.md is listed as retired but still ships/);
+});
+
+test("install.sh copies agents and commands, removes retired ones, keeps the user's own", () => {
+  const home = mkdtempSync(join(tmpdir(), "guild-home-"));
+  try {
+    mkdirSync(join(home, "agents"), { recursive: true });
+    writeFileSync(join(home, "agents", "tester.md"), "old\n");
+    writeFileSync(join(home, "agents", "mine.md"), "user's own\n");
+    const run = spawnSync("bash", [join(repo, "scripts", "install.sh")], {
+      env: { ...process.env, CLAUDE_CONFIG_DIR: home },
+      encoding: "utf8",
+    });
+    assert.equal(run.status, 0, run.stderr);
+    assert.ok(!existsSync(join(home, "agents", "tester.md")), "retired tester.md should be removed");
+    assert.ok(existsSync(join(home, "agents", "mine.md")), "the user's own agent must be kept");
+    assert.ok(existsSync(join(home, "agents", "developer.md")), "developer.md should be installed");
+    assert.ok(existsSync(join(home, "commands", "quest.md")), "quest.md should be installed");
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
 });
