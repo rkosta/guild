@@ -2,6 +2,9 @@
 
 Newest first. The top entry must match `VERSION` and the README title (`pnpm run check` verifies this).
 
+## v3.7.0
+Analyst plans fewer, bigger tasks. Each task is now a vertical slice (one behavior end to end) that can be built, tested and reviewed on its own, instead of a sliver capped at ~5 files. Setup and plumbing get folded into the first task that needs them, and the analyst merges tasks when it has more than 8 (most requests need 1–6). Each task now lists `Blocked by:`, groundwork for running independent tasks in parallel. Prompted by a 16-task brochure-site plan that meant ~48 sequential agent runs.
+
 ## v3.6.0
 `/quest-orca --headroom`: launches every agent pane through `headroom wrap claude --no-proxy --code-memory none`, reusing the Headroom proxy that is already running (port from `ANTHROPIC_BASE_URL`, `$HEADROOM_PORT` or 8787). The orchestrator checks the proxy's `/health` first and stops if it's down. Off by default; other modes unchanged.
 

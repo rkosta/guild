@@ -1,4 +1,4 @@
-# Guild — v3.6.0 (Herdr and Orca panes)
+# Guild — v3.7.0 (Herdr and Orca panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -148,7 +148,7 @@ analyst ──► plan.md ──► YOU APPROVE
 
 | Agent | Job | Can edit code? |
 |---|---|---|
-| analyst | Understand the ask, requirements, acceptance criteria, task breakdown | Only writes the plan (Bash for read-only inspection) |
+| analyst | Understand the ask, requirements, acceptance criteria, a few vertical-slice tasks with blockers | Only writes the plan (Bash for read-only inspection) |
 | developer | Implements one task at a time, applies review fixes | Yes |
 | tester | Writes and runs tests after implementation | Tests only |
 | reviewer | Checks against acceptance criteria, runs build + tests | No — only writes its handoff file |
