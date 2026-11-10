@@ -2,6 +2,9 @@
 
 Newest first. The top entry must match `VERSION` and the README title (`pnpm run check` verifies this).
 
+## v4.2.0
+The analyst can read Jira. When the request names an issue (`ABC-123` or a Jira URL), it fetches the issue and its comments through the claude.ai Atlassian connector and uses them as part of the request, follows linked or parent issues only when the ticket points to them, and lists any conflict between the request and the ticket as an open question. The plan's Summary gets a `Ticket:` line. Tools are read-only (`getAccessibleAtlassianResources`, `getJiraIssue`, `listJiraIssueComments`, `searchJiraIssuesUsingJql`), and the frontmatter check now rejects Atlassian write tools on any agent. Without the connector, the analyst says so and works from the request text.
+
 ## v4.1.0
 Faster fix rounds and visible cost. Each `## Run log` line now carries start/end time and minutes (`<step> | <role> | <model> | HH:MM–HH:MM (<n>m) | <result>`), and the wrap-up summary reports total wall-clock time and minutes per role, so you can see where a run's time goes. A reviewer re-run after a fix round is now a re-review: it checks only the previous must-fix items, runs the build and tests, and reads only the code the fix touched. It no longer redoes the whole review or adds new findings unless the fix caused them. At the approval stop, the orchestrator shows roughly how many agent runs the plan means (N tasks → about 2N runs, plus fix rounds and one PR review). The checker now guards these contracts: the analyst's task fields (`Tests needed`, `Blocked by`, `Status`), the reviewer's `## Re-reviews` section, and the re-review, run-timing and run-estimate wording in each orchestrator. It also fails if `install.sh` lists as retired an agent that still ships. A new test runs `install.sh` against a temp `CLAUDE_CONFIG_DIR`.
 

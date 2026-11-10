@@ -76,6 +76,13 @@ test("frontmatter: pr-reviewer cannot get Edit", () => {
   assert.match(errors.join("\n"), /pr-reviewer must stay read-only/);
 });
 
+test("frontmatter: Atlassian tools must be read-only", () => {
+  const errors = errorsFor(checkFrontmatter, (edit) =>
+    edit("agents/analyst.md", (t) => t.replace("tools: Read,", "tools: Read, mcp__claude_ai_Atlassian_MCP__editJiraIssue,")),
+  );
+  assert.match(errors.join("\n"), /analyst\.md: Atlassian tools must be read-only: mcp__claude_ai_Atlassian_MCP__editJiraIssue/);
+});
+
 test("frontmatter: missing block is reported", () => {
   const errors = errorsFor(checkFrontmatter, (edit) =>
     edit("agents/analyst.md", (t) => t.replace(/^---\n[\s\S]*?\n---\n/, "")),

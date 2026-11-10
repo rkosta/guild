@@ -45,6 +45,7 @@ VERSION              current version, single source of truth
 - **Developer works test-first** (red → green per acceptance criterion) and owns both tests and code; there is no separate tester (dropped in v4.0 to cut one agent run per task). It reuses the existing test framework, never adds a new one, and never weakens a test to get green. Its reply carries a `Red:` line per new test (the failure it showed before the code existed), and the reviewer treats a missing or implausible one, or a test that would pass without the change, as must-fix.
 - **Reviewer is read-only on code.** It has `Write` only so it can save its handoff file in Herdr and Orca mode.
 - **PR reviewer only reports.** It runs `pr-review-toolkit:review-pr` with every aspect except `simplify` (the simplifier edits code), and the orchestrator returns the output unchanged. It needs `Skill` and `Agent` because the skill launches review agents, and `Write` only for its handoff file.
+- **Analyst reads Jira, nobody writes to it.** It has the claude.ai Atlassian connector's read tools (`getAccessibleAtlassianResources`, `getJiraIssue`, `listJiraIssueComments`, `searchJiraIssuesUsingJql`). The connector is optional: without it, the analyst works from the request text. `pnpm run check` rejects Atlassian write tools on any agent.
 - **Tiers are chosen by the user**, never by the analyst. No haiku in any tier.
 
   | Tier | analyst | developer | reviewer | pr-reviewer |

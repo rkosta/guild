@@ -1,4 +1,4 @@
-# Guild — v4.1.0 (Herdr and Orca panes)
+# Guild — v4.2.0 (Herdr and Orca panes)
 
 Guild is a set of multi-agent workflows for Claude Code. Today it has one: `/quest`, the dev flow.
 
@@ -153,7 +153,7 @@ analyst ──► plan.md ──► YOU APPROVE
 | reviewer | Checks against acceptance criteria and that each one has a behavior test, runs build + tests | No — only writes its handoff file |
 | pr-reviewer | Runs `pr-review-toolkit:review-pr` once at the end (all aspects except `simplify`, which edits code) and returns the output. Nothing is fixed automatically | No — only writes its handoff file |
 
-Extra tools beyond file/Bash access: all agents get `codegraph_explore` (used only if the project has `.codegraph/`); analyst, developer and reviewer also get the Figma read tools (`create_session` first) and analyst/developer get `Skill` (for `figma-design-to-code`). If an MCP server isn't installed, those tools are simply unavailable. Agents never get Herdr or Artifact tools, and the agent files never mention Herdr or Orca.
+Extra tools beyond file/Bash access: all agents get `codegraph_explore` (used only if the project has `.codegraph/`); analyst, developer and reviewer also get the Figma read tools (`create_session` first) and analyst/developer get `Skill` (for `figma-design-to-code`). The analyst also gets read-only Jira tools from the claude.ai Atlassian connector, so a task like `/quest ABC-123` or one with a Jira link pulls in the ticket's description and comments; it never writes to Jira. If an MCP server isn't installed, those tools are simply unavailable. Agents never get Herdr or Artifact tools, and the agent files never mention Herdr or Orca.
 
 Plans and handoffs are git-ignored through `.git/info/exclude`, so `.gitignore` is never touched. Linters and formatters don't read that file, so they may still see `.guild/`. Agents ignore those findings and never edit lint/format config to hide them, and they run formatters in write mode only on the files they changed. Delete `.guild/` whenever you like.
 

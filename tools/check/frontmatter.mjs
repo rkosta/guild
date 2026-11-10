@@ -1,6 +1,8 @@
 import { listMd, read, readFrontmatter } from "./lib.mjs";
 
 const FORBIDDEN_TOOLS = [/herdr/i, /artifact/i];
+// Agents may read Jira/Confluence, never write to them.
+const ATLASSIAN_WRITE = /atlassian.*__(create|edit|update|transition|addOrEdit|execute)/i;
 
 export function checkFrontmatter(root) {
   const errors = [];
@@ -24,6 +26,7 @@ export function checkFrontmatter(root) {
     const list = tools.split(",").map((t) => t.trim());
     for (const tool of list) {
       if (FORBIDDEN_TOOLS.some((re) => re.test(tool))) fail(path, `tool not allowed by design: ${tool}`);
+      if (ATLASSIAN_WRITE.test(tool)) fail(path, `Atlassian tools must be read-only: ${tool}`);
     }
     if (["reviewer", "pr-reviewer"].includes(name) && list.includes("Edit")) fail(path, `${name} must stay read-only on code (no Edit)`);
   }
